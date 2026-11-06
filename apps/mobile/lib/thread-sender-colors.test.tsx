@@ -3,8 +3,9 @@ import { botColors, darkTokens } from "@rakazo/ui-tokens";
 import type { ComponentProps } from "react";
 import { createContext } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import type { MobileBot, MobileSnapshot } from "./api";
+import { setMessageBubbleColor } from "./message-bubble-colors";
 
 vi.mock("react-native", () => ({
   Alert: { alert: vi.fn() },
@@ -39,7 +40,25 @@ vi.mock("@rakazo/chat-ui/native", () => ({
 }));
 
 vi.mock("../components/message-caption", () => ({
-  MessageCaption: ({ text }: { text: string }) => <span>{text}</span>,
+  MessageCaption: ({
+    role,
+    received,
+    text,
+    tokens,
+  }: {
+    role: "user" | "bot";
+    received: boolean;
+    text: string;
+    tokens: { chatUserForeground: string; foreground: string };
+  }) => (
+    <span
+      style={{
+        color: role === "user" && !received ? tokens.chatUserForeground : tokens.foreground,
+      }}
+    >
+      {text}
+    </span>
+  ),
 }));
 vi.mock("../components/pages/page-card", () => ({ PageCard: () => null }));
 vi.mock("../components/thread/mcp-app-card", () => ({ McpAppCard: () => null }));
@@ -66,6 +85,11 @@ vi.mock("../components/McpApprovalCard", () => ({ McpApprovalCard: () => null })
 vi.mock("../components/native-symbol", () => ({ NativeSymbol: () => null }));
 
 import { MessageBubble } from "../components/thread/message-bubble";
+
+beforeEach(async () => {
+  await setMessageBubbleColor("user", null);
+  await setMessageBubbleColor("agent", null);
+});
 
 type BubbleProps = ComponentProps<typeof MessageBubble>;
 
@@ -187,6 +211,32 @@ it("keeps the bot name when opening a computer without a sender label", () => {
     />,
   );
   expect(opened).toEqual([["bot-a", "Sender"]]);
+});
+
+it("applies saved user and agent bubble colors to regular messages", async () => {
+  await setMessageBubbleColor("user", "#FFFFFF");
+  await setMessageBubbleColor("agent", "#343434");
+
+  const user = renderToStaticMarkup(
+    <Bubble
+      message={{ id: "user-message", role: "user", blocks: [{ kind: "text", text: "Hello" }] }}
+    />,
+  );
+  expect(user).toContain("background-color:#FFFFFF");
+  expect(user).toContain("color:#000000");
+
+  const agent = renderToStaticMarkup(
+    <Bubble
+      message={{
+        id: "agent-message",
+        role: "bot",
+        botId: "bot-1",
+        blocks: [{ kind: "text", text: "Hello" }],
+      }}
+    />,
+  );
+  expect(agent).toContain("background-color:#343434");
+  expect(agent).toContain("color:#FFFFFF");
 });
 
 it.each(["text", "image"] as const)(

@@ -22,6 +22,7 @@ import { allowsSpace } from "../../lib/ask-action-label";
 import { plainAskTitle } from "../../lib/ask-title";
 import { t, useI18n } from "../../lib/i18n";
 import { isInlineImageBlock } from "../../lib/inline-image";
+import type { MessageBubbleColors } from "../../lib/message-bubble-colors";
 import {
   getCachedMessageBubbleColors,
   subscribeMessageBubbleColors,
@@ -722,6 +723,7 @@ const MessageBubbleContent = memo(function MessageBubbleContent({
           actionProps={actionProps}
           doubleTapSurface={doubleTapSurface}
           userBubble={userBubble}
+          bubbleColors={bubbleColors}
         />
       ))}
       {choiceBlocks.map((block, index) => (
@@ -780,6 +782,7 @@ function MessageTextCard({
   actionProps,
   doubleTapSurface = false,
   userBubble,
+  bubbleColors,
 }: {
   message: MobileMessage;
   outgoing: boolean;
@@ -788,9 +791,10 @@ function MessageTextCard({
   actionProps: MessageActionProps;
   doubleTapSurface?: boolean;
   userBubble?: UserBubble;
+  bubbleColors: MessageBubbleColors;
 }) {
   const colorScheme = useResolvedAppearance();
-  const tokens = withUserBubble(mobileTokens(), userBubble);
+  const tokens = withUserBubble(mobileTokens(), userBubble, bubbleColors);
   const contentText = blockText(message);
   const { t } = useI18n();
   const userMentions = useContext(UserMentionsContext);
@@ -837,7 +841,9 @@ function MessageTextCard({
       {speaker ? (
         <Text
           style={{
-            color: speakerColor ?? tokens.mutedForeground,
+            color: bubbleColors.agent
+              ? tokens.foreground
+              : (speakerColor ?? tokens.mutedForeground),
             ...typeScale.footnote,
             marginBottom: 4,
           }}

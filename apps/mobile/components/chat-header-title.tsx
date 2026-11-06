@@ -2,7 +2,7 @@ import type { SpaceBot } from "@rakazo/contracts";
 import { displayName as safeDisplayName } from "@rakazo/core";
 import { useRouter } from "expo-router";
 import { useSyncExternalStore } from "react";
-import { Pressable } from "react-native";
+import { Pressable, View } from "react-native";
 import type { MobileBot, MobileGroup } from "../lib/api";
 import type { ChatTitleRoute } from "../lib/chat-settings-route";
 import { chatTitleRoute } from "../lib/chat-settings-route";
@@ -96,21 +96,24 @@ export function ChatHeaderTitle({
   const label = safeDisplayName(title.name, inGroup ? t("Group") : t("Bot")) || t("Thread");
   const opens = title.opens;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={opens ? t(inGroup ? "Group settings" : "Profile") : label}
-      disabled={!opens}
-      onPress={() => {
-        if (opens) router.push(opens);
-      }}
-    >
-      <GlassSurface style={styles.titleCapsule} fallbackStyle={styles.titleCapsuleFill}>
-        {!inGroup && params.botId ? (
-          <ChatTitleAvatar bot={title.bot} status={title.status} composing={title.composing} />
-        ) : null}
-        {inGroup ? <GroupSeats members={members ?? []} size={CHAT_TITLE_AVATAR_SIZE} /> : null}
-        <ChatTitleLabel label={label} placeholder={!title.name} style={styles.title} />
-      </GlassSurface>
-    </Pressable>
+    <View style={styles.titleStack}>
+      {!inGroup && params.botId ? (
+        <ChatTitleAvatar bot={title.bot} status={title.status} composing={title.composing} />
+      ) : null}
+      {inGroup ? <GroupSeats members={members ?? []} size={CHAT_TITLE_AVATAR_SIZE} /> : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={opens ? t(inGroup ? "Group settings" : "Profile") : label}
+        disabled={!opens}
+        onPress={() => {
+          if (opens) router.push(opens);
+        }}
+        style={styles.titlePressable}
+      >
+        <GlassSurface style={styles.titleCapsule} fallbackStyle={styles.titleCapsuleFill}>
+          <ChatTitleLabel label={label} placeholder={!title.name} style={styles.title} />
+        </GlassSurface>
+      </Pressable>
+    </View>
   );
 }

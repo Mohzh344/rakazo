@@ -28,6 +28,7 @@ vi.mock("react-native", () => ({
       { type: "button", disabled, "aria-label": accessibilityLabel, onClick: onPress },
       children,
     ),
+  View: ({ children }: { children?: ReactNode }) => createElement("div", null, children),
 }));
 vi.mock("expo-router", () => ({ useRouter: () => ({ push }) }));
 vi.mock("../components/glass-surface", () => ({
@@ -106,6 +107,8 @@ it("draws the inbox's bot from the route alone, before the chat publishes anythi
   expect(name()?.textContent).toBe("Helper");
   expect(name()?.getAttribute("data-placeholder")).toBe("false");
   expect(button().getAttribute("aria-label")).toBe("Profile");
+  expect(avatar()?.nextElementSibling).toBe(button());
+  expect(button().contains(name())).toBe(true);
 });
 
 it("reserves the avatar for an unknown bot and marks a missing name as a placeholder", () => {
@@ -192,8 +195,8 @@ it("seats a group's members from the inbox on the first frame, then from the ope
   render({ groupId: "group-1", name: "Team" });
   expect(seats()?.getAttribute("data-members")).toBe("b2,b1");
   expect(seats()?.getAttribute("data-size")).toBe("28");
-  // Seats sit before the name, in place of a one-to-one chat's avatar.
-  expect(seats()?.nextElementSibling).toBe(name());
+  // Group identity sits above the same clickable name capsule as a one-to-one avatar.
+  expect(seats()?.nextElementSibling).toBe(button());
   let clear = () => {};
   act(() => {
     clear = publishChatTitle("thread-1", {

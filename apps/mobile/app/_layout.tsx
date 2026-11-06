@@ -282,7 +282,13 @@ function LayoutContent() {
   // Beside the list a chat swaps in place, the way it does when picked from a sidebar.
   const { split, inboxHidden, foldActive } = useSplitView();
   const canInvite = Boolean(useReferral());
-  const chatAnimation = split ? "none" : Platform.OS === "web" ? undefined : "slide_from_right";
+  const chatAnimation = split
+    ? "none"
+    : Platform.OS === "web"
+      ? undefined
+      : Platform.OS === "android"
+        ? "simple_push"
+        : "slide_from_right";
   const [ready, setReady] = useState(false);
   useNotificationResponses(ready);
   const callSession = useSyncExternalStore(
@@ -407,8 +413,13 @@ function LayoutContent() {
                       </AvatarScreenFocus>
                     )}
                     screenOptions={{
-                      // Keep transitions native and light; inactive pages stop rendering in the background.
-                      animation: Platform.OS === "web" ? undefined : "slide_from_right",
+                      // Android uses its lighter native push; iOS keeps its standard horizontal slide.
+                      animation:
+                        Platform.OS === "web"
+                          ? undefined
+                          : Platform.OS === "android"
+                            ? "simple_push"
+                            : "slide_from_right",
                       freezeOnBlur: Platform.OS !== "web",
                       headerLargeTitle: false,
                       headerStyle: { backgroundColor: navigationTheme.colors.background },

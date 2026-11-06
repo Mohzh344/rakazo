@@ -43,6 +43,7 @@ export class ThreadScrollBehavior {
   private threadKey: string | null = null;
   private laidOut = false;
   private contentReady = false;
+  private pendingLayoutFollow = false;
   private viewportHeight: number | null = null;
   private contentHeight: number | null = null;
   private distanceFromEnd = 0;
@@ -58,6 +59,7 @@ export class ThreadScrollBehavior {
     this.threadKey = threadKey;
     this.laidOut = false;
     this.contentReady = false;
+    this.pendingLayoutFollow = false;
     this.latestRowKey = null;
     this.followingOwnSend = null;
     this.viewportHeight = null;
@@ -70,17 +72,23 @@ export class ThreadScrollBehavior {
   }
 
   onLayout(viewportHeight?: number): ThreadScrollAction {
+    const firstLayout = !this.laidOut;
     this.laidOut = true;
     if (viewportHeight !== undefined) {
       this.viewportHeight = viewportHeight;
       this.onUserScroll(this.distanceFromEnd);
     }
     if (this.userScrolling) return null;
-    return this.contentReady && !this.currentState.detached ? "jump" : null;
+    if (this.pendingLayoutFollow) {
+      this.pendingLayoutFollow = false;
+      return this.followingOwnSend;
+    }
+    return firstLayout && this.contentReady && !this.currentState.detached ? "jump" : null;
   }
 
   onOwnSend(): ThreadScrollAction {
     this.followingOwnSend = this.currentState.detached ? "jump" : "smooth";
+    this.pendingLayoutFollow = true;
     this.dragging = false;
     this.userScrolling = false;
     this.pendingFollow = false;
@@ -97,13 +105,19 @@ export class ThreadScrollBehavior {
     const outboxAdded = next.unsentKeys.some((key) => !previous?.unsentKeys.includes(key));
     const ownSendAction = this.followingOwnSend;
     const outboxRemoved = previous?.unsentKeys.some((key) => !next.unsentKeys.includes(key));
-    if ((messageChanged && next.own) || outboxRemoved) this.followingOwnSend = null;
+    if ((messageChanged && next.own) || outboxRemoved) {
+      this.followingOwnSend = null;
+      this.pendingLayoutFollow = false;
+    }
     if (!messageChanged && !outboxAdded) return null;
     const initial =
       previous === null || (previous.messageId === null && previous.unsentKeys.length === 0);
     const own = !messageChanged || next.own;
     if (own) {
-      if (ownSendAction) return ownSendAction;
+      if (ownSendAction) {
+        this.pendingLayoutFollow = false;
+        return ownSendAction;
+      }
       if (this.currentState.detached || this.userScrolling) return null;
       return initial ? (this.laidOut ? "jump" : null) : "smooth";
     }

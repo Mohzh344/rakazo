@@ -7,15 +7,23 @@ export function createThreadHeaderStyles() {
   const tokens = mobileTokens();
   const transparentBackground = transparentColor(tokens.background);
   return StyleSheet.create({
-    titleCapsule: {
-      flexDirection: "row",
+    titleStack: {
       alignItems: "center",
-      gap: 8,
+      justifyContent: "center",
       maxWidth: 280,
-      minHeight: HEADER_CONTROL_SIZE,
-      paddingVertical: 3,
-      paddingStart: 11,
-      paddingEnd: 9,
+      gap: 2,
+    },
+    titlePressable: {
+      alignItems: "center",
+      maxWidth: "100%",
+    },
+    titleCapsule: {
+      alignItems: "center",
+      justifyContent: "center",
+      maxWidth: 280,
+      minHeight: HEADER_CONTROL_SIZE - 12,
+      paddingVertical: 2,
+      paddingHorizontal: 12,
       borderRadius: 999,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: tokens.glassStroke,
@@ -29,11 +37,13 @@ export function createThreadHeaderStyles() {
       backgroundColor: tokens.glassFill,
     },
     title: {
-      // Two compact lines give the agent's full name room beside its avatar.
+      // The stacked layout reserves the full row below the avatar for long names.
       flexShrink: 1,
+      maxWidth: 256,
       fontSize: 13,
       lineHeight: 16,
       fontWeight: "600",
+      textAlign: "center",
       color: tokens.foreground,
     },
     headerActions: {

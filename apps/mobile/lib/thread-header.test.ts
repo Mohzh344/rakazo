@@ -15,16 +15,17 @@ vi.mock("./appearance", () => ({
   }),
 }));
 
-it("sizes the chat title like the header buttons and reserves room for two name lines", () => {
-  const { titleCapsule } = createThreadHeaderStyles();
-  expect(titleCapsule.minHeight).toBe(HEADER_CONTROL_SIZE);
-  expect(titleCapsule).toMatchObject({ maxWidth: 280, paddingVertical: 3 });
+it("stacks the avatar over a readable two-line name capsule", () => {
+  const { titleStack, titleCapsule } = createThreadHeaderStyles();
+  expect(titleStack).toMatchObject({ alignItems: "center", maxWidth: 280, gap: 2 });
+  expect(titleCapsule.minHeight).toBe(HEADER_CONTROL_SIZE - 12);
+  expect(titleCapsule).toMatchObject({ maxWidth: 280, paddingVertical: 2 });
 });
 
-it("pads the chat title evenly at its start and end, mirrored for right-to-left", () => {
+it("centers the name capsule with mirrored horizontal padding", () => {
   const { titleCapsule } = createThreadHeaderStyles();
-  expect(titleCapsule).toMatchObject({ paddingStart: 11, paddingEnd: 9 });
-  for (const side of ["paddingHorizontal", "paddingLeft", "paddingRight"]) {
+  expect(titleCapsule).toMatchObject({ paddingHorizontal: 12, justifyContent: "center" });
+  for (const side of ["paddingStart", "paddingEnd", "paddingLeft", "paddingRight"]) {
     expect(titleCapsule).not.toHaveProperty(side);
   }
 });
@@ -35,12 +36,12 @@ it("uses a borderless fallback title fill and leaves the header buttons clear", 
   expect(styles.statusBarFade).not.toHaveProperty("backgroundColor");
 });
 
-it("lets a long chat name give way to the avatars beside it", () => {
+it("lets a long chat name wrap below the avatar", () => {
   const { title } = createThreadHeaderStyles();
-  expect(title.flexShrink).toBe(1);
+  expect(title).toMatchObject({ flexShrink: 1, maxWidth: 256, textAlign: "center" });
 });
 
-it("sets the chat title in compact, readable type so two lines fit beside the avatar", () => {
+it("sets the name in compact, readable type for the stacked header", () => {
   const { title } = createThreadHeaderStyles();
   expect(title).toMatchObject({
     fontSize: 13,

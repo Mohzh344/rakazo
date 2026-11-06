@@ -166,12 +166,14 @@ describe("mobile thread initial scroll", () => {
     expect(behavior.onContentChanged(false, row)).toBe("jump");
   });
 
-  it("keeps the latest message visible when the viewport resizes", () => {
+  it("does not issue repeated jumps while the keyboard resizes the viewport", () => {
     const behavior = createScrollBehavior();
     behavior.onContentChanged(false, latestThreadRowKey("m1"));
 
-    expect(behavior.onLayout()).toBe("jump");
-    expect(behavior.onLayout()).toBe("jump");
+    expect(behavior.onLayout(800)).toBe("jump");
+    expect(behavior.onLayout(620)).toBeNull();
+    expect(behavior.onLayout(400)).toBeNull();
+    expect(behavior.onLayout(800)).toBeNull();
   });
 
   it("keeps the initial jump pending while another scroll target blocks it", () => {

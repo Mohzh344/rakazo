@@ -33,6 +33,22 @@ describe("message bubble colors", () => {
     expect(getCachedMessageBubbleColors()).toEqual({ user: "#FFFFFF", agent: "#343434" });
   });
 
+  it("restores both choices from secure storage after an app restart", async () => {
+    const beforeRestart = await import("./message-bubble-colors");
+    await beforeRestart.setMessageBubbleColor("user", "#FFFFFF");
+    await beforeRestart.setMessageBubbleColor("agent", "#343434");
+
+    vi.resetModules();
+    const afterRestart = await import("./message-bubble-colors");
+    expect(afterRestart.getCachedMessageBubbleColors()).toEqual({ user: null, agent: null });
+
+    await afterRestart.loadMessageBubbleColors();
+    expect(afterRestart.getCachedMessageBubbleColors()).toEqual({
+      user: "#FFFFFF",
+      agent: "#343434",
+    });
+  });
+
   it("uses black text on white bubbles and white text on dark bubbles", async () => {
     const { messageBubbleForeground } = await import("./message-bubble-colors");
     expect(messageBubbleForeground("#FFFFFF")).toBe("#000000");
