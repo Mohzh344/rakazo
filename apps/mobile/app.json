@@ -102,6 +102,7 @@
       "./plugins/with-lan-cleartext",
       "./plugins/with-android-no-gwp-asan",
       "./plugins/with-android-rtl",
+      "./plugins/with-android-release-signing",
       "./plugins/with-agent-notifications",
       "./plugins/with-android-r8",
       "./plugins/with-app-intents"

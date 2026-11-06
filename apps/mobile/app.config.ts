@@ -1,26 +1,17 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
-const UPSTREAM_EAS_PROJECT_ID = "07f7eb04-45e3-47fe-9374-99a2f991131e";
-const FORK_ANDROID_PROFILE = "fork-android-arm64";
-const RELEASE_PROFILES = new Set(["production", "android-apk", "diagnostic", FORK_ANDROID_PROFILE]);
+const RELEASE_PROFILES = new Set(["production", "android-apk", "diagnostic"]);
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const profile = process.env.EAS_BUILD_PROFILE ?? "";
+  const forkRelease = process.env.RAKAZO_FORK_RELEASE === "1";
   const forkProjectId = process.env.EXPO_PROJECT_ID;
   const forkOwner = process.env.EXPO_OWNER;
-  if (profile === FORK_ANDROID_PROFILE && (!forkProjectId || !forkOwner)) {
-    throw new Error(
-      "Set EXPO_OWNER and EXPO_PROJECT_ID for a separate Expo project before building the fork APK.",
-    );
-  }
-  if (profile === FORK_ANDROID_PROFILE && forkProjectId === UPSTREAM_EAS_PROJECT_ID) {
-    throw new Error("The fork APK must use its own Expo project ID, not Rakazo upstream's.");
-  }
-  if ((forkProjectId && !forkOwner) || (forkOwner && !forkProjectId)) {
+  if (!forkRelease && ((forkProjectId && !forkOwner) || (forkOwner && !forkProjectId))) {
     throw new Error("EXPO_OWNER and EXPO_PROJECT_ID must be set together.");
   }
 
-  if (RELEASE_PROFILES.has(profile)) {
+  if (RELEASE_PROFILES.has(profile) && !forkRelease) {
     const apiUrl = process.env.EXPO_PUBLIC_API_URL;
     if (!apiUrl) {
       throw new Error(
@@ -40,7 +31,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   }
 
   let result = config as ExpoConfig;
-  if (forkProjectId && forkOwner) {
+  if (forkRelease) {
+    // This fork builds directly with Gradle. It has no Expo project and must never
+    // inherit the upstream project's OTA URL or EAS identity from app.json.
+    const extra = { ...result.extra };
+    delete extra.eas;
+    const updates = { ...result.updates };
+    delete updates.url;
+    result = {
+      ...result,
+      owner: undefined,
+      extra,
+      updates: { ...updates, enabled: false },
+    };
+  }
+  if (!forkRelease && forkProjectId && forkOwner) {
     result = {
       ...result,
       owner: forkOwner,

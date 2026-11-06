@@ -12,93 +12,139 @@ concurrency:
 
 jobs:
   build:
-    name: Build signed arm64 APK on EAS
+    name: Build signed arm64 APK with Gradle
     runs-on: ubuntu-24.04
     timeout-minutes: 90
-    env:
-      EXPO_OWNER: ${{ vars.EXPO_OWNER }}
-      EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
 
-      - name: Require a separate Expo project
+      - name: Require the independent release key
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          ANDROID_RELEASE_CERT_SHA256: ${{ vars.ANDROID_RELEASE_CERT_SHA256 }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "$EXPO_TOKEN" ]]; then
-            echo "Add the EXPO_TOKEN repository secret for the fork's Expo account." >&2
-            exit 1
-          fi
-          if [[ -z "$EXPO_OWNER" || -z "$EXPO_PROJECT_ID" ]]; then
-            echo "Add EXPO_OWNER and EXPO_PROJECT_ID as repository Actions variables." >&2
-            exit 1
-          fi
-          if [[ "$EXPO_PROJECT_ID" == "07f7eb04-45e3-47fe-9374-99a2f991131e" ]]; then
-            echo "The fork must use a separate Expo project and signing key, not the upstream project." >&2
-            exit 1
-          fi
+          for name in \
+            ANDROID_RELEASE_KEYSTORE_BASE64 \
+            ANDROID_RELEASE_KEYSTORE_PASSWORD \
+            ANDROID_RELEASE_KEY_ALIAS \
+            ANDROID_RELEASE_KEY_PASSWORD \
+            ANDROID_RELEASE_CERT_SHA256; do
+            if [[ -z "${!name}" ]]; then
+              echo "Configure the repository secret/variable: $name" >&2
+              exit 1
+            fi
+          done
 
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: pnpm
 
-      - name: Set up Expo
-        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
-          eas-version: latest
-          packager: pnpm
-          token: ${{ secrets.EXPO_TOKEN }}
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [[ -z "$sdk_root" || ! -d "$sdk_root" ]]; then
+            echo "The GitHub runner does not expose a preinstalled Android SDK." >&2
+            exit 1
+          fi
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk_root" >> "$GITHUB_ENV"
+          sdkmanager_bin="$(command -v sdkmanager || true)"
+          if [[ -z "$sdkmanager_bin" ]]; then
+            sdkmanager_bin="$(find "$sdk_root/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          if [[ -z "$sdkmanager_bin" ]]; then
+            echo "Android sdkmanager was not found on the runner." >&2
+            exit 1
+          fi
+          yes | "$sdkmanager_bin" --licenses >/dev/null 2>&1 || true
+          "$sdkmanager_bin" --install \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check mobile app
-        run: pnpm --filter @rakazo/mobile check
+      - name: Check mobile app and tests
+        run: |
+          pnpm --filter @rakazo/mobile check
+          pnpm --filter @rakazo/mobile test
 
-      - name: Require the production API environment
-        working-directory: apps/mobile
+      - name: Prepare the private signing keystore
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
         shell: bash
         run: |
           set -euo pipefail
-          vars="$(eas env:list production --format short)"
-          if ! grep -q '^EXPO_PUBLIC_API_URL=' <<< "$vars"; then
-            echo "Set EXPO_PUBLIC_API_URL in the fork's EAS production environment (HTTPS required)." >&2
-            exit 1
-          fi
-          remote_owner="$(sed -n 's/^EXPO_OWNER=//p' <<< "$vars" | tail -n1)"
-          remote_project_id="$(sed -n 's/^EXPO_PROJECT_ID=//p' <<< "$vars" | tail -n1)"
-          if [[ "$remote_owner" != "$EXPO_OWNER" || "$remote_project_id" != "$EXPO_PROJECT_ID" ]]; then
-            echo "Set matching EXPO_OWNER and EXPO_PROJECT_ID values in the EAS production environment." >&2
-            exit 1
-          fi
-          if ! grep -q '^GOOGLE_SERVICES_JSON=' <<< "$vars"; then
-            echo "::warning::GOOGLE_SERVICES_JSON is not set; Android push notifications will not be configured in this APK."
-          fi
+          key_store="$RUNNER_TEMP/rakazo-release.p12"
+          printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$key_store"
+          chmod 600 "$key_store"
+          test -s "$key_store"
+          echo "RAKAZO_ANDROID_KEYSTORE_PATH=$key_store" >> "$GITHUB_ENV"
 
-      - name: Build and verify ARM64 APK
+      - name: Verify fork configuration has no Expo project or upstream OTA URL
+        working-directory: apps/mobile
+        env:
+          RAKAZO_FORK_RELEASE: "1"
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json > "$RUNNER_TEMP/rakazo-expo-config.json"
+          node - "$RUNNER_TEMP/rakazo-expo-config.json" <<'NODE'
+          const fs = require("node:fs");
+          const config = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (config.owner || config.extra?.eas?.projectId) {
+            throw new Error("Fork APK must not contain Expo/EAS ownership or project identity.");
+          }
+          if (config.updates?.enabled !== false || config.updates?.url) {
+            throw new Error("Fork APK must disable Expo Updates and remove every OTA URL.");
+          }
+          if (JSON.stringify(config).includes("07f7eb04-45e3-47fe-9374-99a2f991131e")) {
+            throw new Error("Upstream Expo project identity remains in the resolved config.");
+          }
+          console.log("Verified: no Expo project identity or OTA endpoint is configured.");
+          NODE
+
+      - name: Generate native Android project
+        working-directory: apps/mobile
+        env:
+          RAKAZO_FORK_RELEASE: "1"
+        run: pnpm exec expo prebuild --platform android --no-install --clean
+
+      - name: Build and verify signed arm64 APK
         id: build
-        working-directory: apps/mobile
+        working-directory: apps/mobile/android
+        env:
+          RAKAZO_FORK_RELEASE: "1"
+          RAKAZO_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          RAKAZO_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          RAKAZO_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          ANDROID_RELEASE_CERT_SHA256: ${{ vars.ANDROID_RELEASE_CERT_SHA256 }}
         shell: bash
         run: |
           set -euo pipefail
-          eas build --platform android --profile fork-android-arm64 --non-interactive --freeze-credentials --wait --json > "$RUNNER_TEMP/build.json"
-          url="$(jq -r '.[0].artifacts.applicationArchiveUrl // .[0].artifacts.buildUrl' "$RUNNER_TEMP/build.json")"
-          version="$(jq -r '.[0].appVersion' "$RUNNER_TEMP/build.json")"
-          version_code="$(jq -r '.[0].appBuildVersion' "$RUNNER_TEMP/build.json")"
-          if [[ -z "$url" || "$url" == "null" || "$url" != https://* ]]; then
-            echo "EAS did not return a secure APK download URL." >&2
-            exit 1
-          fi
-          apk="$RUNNER_TEMP/rakazo-android-arm64.apk"
-          curl --fail --location --silent --show-error --output "$apk" "$url"
-          if [[ "$(head -c 2 "$apk")" != "PK" ]]; then
-            echo "The EAS artifact is not an APK." >&2
+          ./gradlew :app:assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+          apk="app/build/outputs/apk/release/app-release.apk"
+          if [[ ! -s "$apk" ]]; then
+            echo "Gradle did not produce the expected release APK." >&2
             exit 1
           fi
           abis="$(unzip -Z1 "$apk" | awk -F/ '$1 == "lib" && NF >= 3 { print $2 }' | sort -u | paste -sd ' ' -)"
@@ -106,7 +152,20 @@ jobs:
             echo "Expected only arm64-v8a native libraries; found: ${abis:-none}." >&2
             exit 1
           fi
-          echo "apk=$apk" >> "$GITHUB_OUTPUT"
+          build_tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n1)"
+          apksigner="$ANDROID_HOME/build-tools/$build_tools/apksigner"
+          "$apksigner" verify --verbose "$apk"
+          cert_output="$("$apksigner" verify --print-certs "$apk")"
+          actual_cert="$(sed -n 's/.*certificate SHA-256 digest: //p' <<< "$cert_output" | head -n1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          expected_cert="$(printf '%s' "$ANDROID_RELEASE_CERT_SHA256" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          if [[ -z "$actual_cert" || "$actual_cert" != "$expected_cert" ]]; then
+            echo "APK signature does not match the fork's dedicated release certificate." >&2
+            exit 1
+          fi
+          cp "$apk" "$RUNNER_TEMP/rakazo-android-arm64.apk"
+          echo "apk=$RUNNER_TEMP/rakazo-android-arm64.apk" >> "$GITHUB_OUTPUT"
+          version="$(node -p "require('../app.json').expo.version")"
+          version_code="$(node -p "require('../app.json').expo.android.versionCode")"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "version_code=$version_code" >> "$GITHUB_OUTPUT"
 

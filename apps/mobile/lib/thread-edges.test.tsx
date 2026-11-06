@@ -23,6 +23,7 @@ describe("thread scroll edges", () => {
   it("hides all four edges while keeping the native header transparent", () => {
     expect(threadEdgeOptions()).toEqual({
       headerTransparent: true,
+      headerLargeTitle: false,
       headerStyle: { backgroundColor: "transparent" },
       headerShadowVisible: false,
       scrollEdgeEffects: { top: "hidden", bottom: "hidden", left: "hidden", right: "hidden" },
@@ -42,6 +43,7 @@ describe("thread scroll edges", () => {
     expect(threadHeaderFloats()).toBe(true);
     expect(threadEdgeOptions()).toEqual({
       headerTransparent: true,
+      headerLargeTitle: false,
       headerStyle: { backgroundColor: "transparent" },
       headerShadowVisible: false,
       scrollEdgeEffects: threadScrollEdgeEffects,
@@ -59,6 +61,7 @@ describe("thread scroll edges", () => {
     expect(threadHeaderFloats()).toBe(true);
     expect(threadEdgeOptions()).toEqual({
       headerTransparent: true,
+      headerLargeTitle: false,
       headerStyle: { backgroundColor: "transparent" },
       headerShadowVisible: false,
       scrollEdgeEffects: threadScrollEdgeEffects,

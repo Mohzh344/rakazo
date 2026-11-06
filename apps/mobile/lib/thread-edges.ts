@@ -43,6 +43,7 @@ export function threadEdgeOptions() {
   const floatingHeader = threadHeaderFloats();
   return {
     headerTransparent: floatingHeader,
+    headerLargeTitle: false,
     ...(floatingHeader
       ? { headerStyle: { backgroundColor: "transparent" }, headerShadowVisible: false }
       : {}),

@@ -29,19 +29,12 @@ const passkeys = {
 };
 
 describe("mobile app config", () => {
-  it("requires a separate Expo owner and project ID for the fork release", () => {
-    vi.stubEnv("EAS_BUILD_PROFILE", "fork-android-arm64");
+  it("builds the fork without Expo identity, upstream OTA, or a preset server", () => {
+    vi.stubEnv("RAKAZO_FORK_RELEASE", "1");
+    vi.stubEnv("EAS_BUILD_PROFILE", undefined);
+    vi.stubEnv("EXPO_PUBLIC_API_URL", undefined);
     vi.stubEnv("EXPO_OWNER", undefined);
     vi.stubEnv("EXPO_PROJECT_ID", undefined);
-
-    expect(() => appConfig(context(config))).toThrow("EXPO_OWNER and EXPO_PROJECT_ID");
-  });
-
-  it("uses the fork Expo project for owner, EAS identity, and OTA updates", () => {
-    const projectId = "a75d8a5c-cc58-4a5f-89f4-c6efb3b8aef6";
-    vi.stubEnv("EAS_BUILD_PROFILE", "fork-android-arm64");
-    vi.stubEnv("EXPO_OWNER", "mohzh344");
-    vi.stubEnv("EXPO_PROJECT_ID", projectId);
     const existing = {
       ...config,
       owner: "inbox-zero",
@@ -50,17 +43,10 @@ describe("mobile app config", () => {
     };
 
     const result = appConfig(context(existing));
-    expect(result.owner).toBe("mohzh344");
-    expect(result.extra?.eas).toEqual({ projectId });
-    expect(result.updates?.url).toBe(`https://u.expo.dev/${projectId}`);
-  });
-
-  it("rejects the upstream Expo project ID for the fork release", () => {
-    vi.stubEnv("EAS_BUILD_PROFILE", "fork-android-arm64");
-    vi.stubEnv("EXPO_OWNER", "mohzh344");
-    vi.stubEnv("EXPO_PROJECT_ID", "07f7eb04-45e3-47fe-9374-99a2f991131e");
-
-    expect(() => appConfig(context(config))).toThrow("must use its own Expo project ID");
+    expect(result.owner).toBeUndefined();
+    expect(result.extra).toEqual({ example: true });
+    expect(result.extra?.passkeyRpIds).toBeUndefined();
+    expect(result.updates).toEqual({ enabled: false });
   });
 
   it("loads the Firebase file path while preserving the existing config", () => {

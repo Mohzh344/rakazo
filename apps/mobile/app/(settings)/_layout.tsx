@@ -19,7 +19,13 @@ export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={({ navigation, route }) => ({
-        animation: Platform.OS === "android" ? "fade_from_bottom" : undefined,
+        animation:
+          Platform.OS === "android"
+            ? "simple_push"
+            : Platform.OS === "ios"
+              ? "slide_from_right"
+              : undefined,
+        freezeOnBlur: Platform.OS !== "web",
         headerStyle: { backgroundColor: tokens.background },
         ...floatingHeaderOptions(),
         headerTintColor: tokens.foreground,

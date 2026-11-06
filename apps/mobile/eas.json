@@ -27,14 +27,6 @@
       },
       "environment": "production"
     },
-    "fork-android-arm64": {
-      "extends": "production",
-      "credentialsSource": "remote",
-      "android": {
-        "buildType": "apk"
-      },
-      "environment": "production"
-    },
     "diagnostic": {
       "extends": "production",
       "channel": "diagnostic"

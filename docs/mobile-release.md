@@ -109,24 +109,23 @@ the APK first.
 
 ## Fork Android ARM64 APK
 
-This fork has a manual `Fork Android ARM64 APK` GitHub Actions workflow. Run it on
-the fork's build branch to create a signed `arm64-v8a` APK artifact; it does not
-create or publish a public GitHub Release. The workflow checks the APK and fails
-if it contains another ABI.
+This fork's manual `Fork Android ARM64 APK` workflow installs dependencies, runs
+the mobile checks, generates Android with Expo Prebuild, and builds locally with
+Gradle. It needs no Expo account, EAS token, or default server URL. It produces a
+signed `arm64-v8a` APK artifact (not a public GitHub Release), verifies the
+signature against the fork's certificate fingerprint, and rejects any other ABI.
+Expo Updates are disabled in this build so it cannot receive upstream OTA updates.
+The installed app starts without a preset server; enter the self-hosted server in
+the app after installation.
 
-Configure an `EXPO_TOKEN` Actions secret and `EXPO_OWNER` and `EXPO_PROJECT_ID`
-Actions variables. Set matching `EXPO_OWNER` and `EXPO_PROJECT_ID` variables in
-the EAS production environment too, so remote config resolves to the same app.
-Link `apps/mobile` to a separate Expo project owned by the fork's release
-operator; do not use Rakazo upstream's project ID. Before running the workflow,
-create a new Android keystore for this project in EAS credentials using Expo's
-[managed-credentials guide](https://docs.expo.dev/app-signing/managed-credentials/);
-do not import or reuse the upstream keystore. The workflow uses EAS remote credentials with
-`--freeze-credentials`, so a missing key stops the CI build instead of changing
-signing credentials. EAS stores the private key outside Git. Set
-`EXPO_PUBLIC_API_URL` in the EAS production environment (HTTPS required).
-Add `GOOGLE_SERVICES_JSON` there to configure Android push; without it, the APK
-can still build but push notifications are unavailable.
+Create one dedicated Android release keystore and configure these repository
+Actions secrets: `ANDROID_RELEASE_KEYSTORE_BASE64`,
+`ANDROID_RELEASE_KEYSTORE_PASSWORD`, `ANDROID_RELEASE_KEY_ALIAS`, and
+`ANDROID_RELEASE_KEY_PASSWORD`. Set the matching public certificate fingerprint
+as the `ANDROID_RELEASE_CERT_SHA256` Actions variable. Keep the same keystore for
+every later release: replacing it prevents Android from installing updates over
+the existing app. Keep a secure backup of the keystore and passwords outside Git.
+The workflow retains its APK artifact for 30 days.
 
 ## Android push
 

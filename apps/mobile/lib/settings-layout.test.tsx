@@ -19,6 +19,8 @@ type ScreenOptions = (props: {
   navigation: { getState: () => { routes: { key: string }[] } };
   route: { key: string };
 }) => {
+  animation?: string;
+  freezeOnBlur?: boolean;
   unstable_headerLeftItems?: () => HeaderItem[];
   headerBackVisible?: boolean;
   headerLeft?: (props: { tintColor?: string }) => ReactElement<BackButtonProps>;
@@ -67,6 +69,24 @@ describe("settings sheet header", () => {
     act(() => root.unmount());
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  it("uses native, lightweight page transitions and freezes blurred settings pages", () => {
+    Platform.OS = "ios";
+    expect(headerOptions("models", ["account", "models"])).toMatchObject({
+      animation: "slide_from_right",
+      freezeOnBlur: true,
+    });
+    Platform.OS = "android";
+    expect(headerOptions("models", ["account", "models"])).toMatchObject({
+      animation: "simple_push",
+      freezeOnBlur: true,
+    });
+    Platform.OS = "web";
+    expect(headerOptions("models", ["account", "models"])).toMatchObject({
+      animation: undefined,
+      freezeOnBlur: false,
+    });
+  });
 
   it("closes the sheet from its first page back to the screen under it", () => {
     sheet.canGoBack.mockReturnValue(true);
