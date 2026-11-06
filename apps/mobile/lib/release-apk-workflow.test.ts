@@ -65,6 +65,21 @@ describe("fork Android ARM64 workflow", () => {
     expect(forkWorkflow).not.toContain("expo/expo-github-action");
   });
 
+  it("runs the quick APK-only path without the full mobile test suite", () => {
+    expect(forkWorkflow).toContain("timeout-minutes: 45");
+    expect(forkWorkflow).toContain("pnpm --filter @rakazo/mobile check");
+    expect(forkWorkflow).not.toContain("pnpm --filter @rakazo/mobile test");
+    expect(forkWorkflow).toContain(":app:assembleRelease");
+    expect(forkWorkflow).toContain("-PreactNativeArchitectures=arm64-v8a");
+  });
+
+  it("raises Gradle Metaspace and compiles Kotlin in-process to avoid daemon OOM", () => {
+    expect(forkWorkflow).toContain("-XX:MaxMetaspaceSize=1536m");
+    expect(forkWorkflow).toContain("kotlin.compiler.execution.strategy=in-process");
+    expect(forkWorkflow).toContain("--no-parallel --max-workers=2");
+    expect(forkWorkflow).toContain("--console=plain --stacktrace");
+  });
+
   it("pins every third-party action to an immutable commit", () => {
     const references = [...forkWorkflow.matchAll(/uses:\s+([^\s#]+)/g)].map((match) => match[1]);
     expect(references.length).toBeGreaterThan(0);
