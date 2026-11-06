@@ -23,6 +23,7 @@ const settingsScreens = new Set([
   "memory-note",
   "models",
   "organization",
+  "appearance",
   "plugin",
   "signup-survey",
   "skill",

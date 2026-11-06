@@ -29,7 +29,7 @@ export function ChatTitleLabel({
       }
       exiting={placeholder ? FadeOut.duration(CHAT_TITLE_FADE_MS) : undefined}
       maxFontSizeMultiplier={HEADER_TITLE_MAX_FONT_SCALE}
-      numberOfLines={1}
+      numberOfLines={2}
       style={style}
     >
       {label}

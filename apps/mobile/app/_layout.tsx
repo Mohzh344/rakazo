@@ -63,10 +63,12 @@ import {
   configureForegroundNotifications,
   resumeLiveNotifications,
 } from "../lib/live-notifications";
+import { loadMessageBubbleColors } from "../lib/message-bubble-colors";
 import { OpenPageContext } from "../lib/message-mentions";
 import { setMobileMonitoringScreen } from "../lib/monitoring";
 import { native, useMobileTokens, useResolvedAppearance } from "../lib/native";
 import { useNotificationResponses } from "../lib/open-notification";
+import { loadProfileAvatar } from "../lib/profile-avatar";
 import { clearQueries } from "../lib/query";
 import { useReferral } from "../lib/referral";
 import {
@@ -280,13 +282,7 @@ function LayoutContent() {
   // Beside the list a chat swaps in place, the way it does when picked from a sidebar.
   const { split, inboxHidden, foldActive } = useSplitView();
   const canInvite = Boolean(useReferral());
-  const chatAnimation = split
-    ? "none"
-    : Platform.OS === "android"
-      ? "fade"
-      : Platform.OS === "ios"
-        ? "slide_from_right"
-        : undefined;
+  const chatAnimation = split ? "none" : Platform.OS === "web" ? undefined : "slide_from_right";
   const [ready, setReady] = useState(false);
   useNotificationResponses(ready);
   const callSession = useSyncExternalStore(
@@ -367,6 +363,8 @@ function LayoutContent() {
         trackMobileStartup("appearance", loadAppearancePreference()).finally(() =>
           setAppearanceReady(true),
         ),
+        trackMobileStartup("message-bubble-colors", loadMessageBubbleColors()),
+        trackMobileStartup("profile-avatar", loadProfileAvatar()),
         trackMobileStartup("streaming", loadResponseStreamingPreference()),
         trackMobileStartup("images", loadRemoteImagesPreference()),
         trackMobileStartup("inbox", loadInboxWidth()),
@@ -410,12 +408,7 @@ function LayoutContent() {
                     )}
                     screenOptions={{
                       // Keep transitions native and light; inactive pages stop rendering in the background.
-                      animation:
-                        Platform.OS === "android"
-                          ? "simple_push"
-                          : Platform.OS === "ios"
-                            ? "slide_from_right"
-                            : undefined,
+                      animation: Platform.OS === "web" ? undefined : "slide_from_right",
                       freezeOnBlur: Platform.OS !== "web",
                       headerLargeTitle: false,
                       headerStyle: { backgroundColor: navigationTheme.colors.background },

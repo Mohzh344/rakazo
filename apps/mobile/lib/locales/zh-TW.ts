@@ -1491,6 +1491,12 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
   "Read from the page, not checked": "讀取自頁面，未核實",
   Total: "合計",
   "{name} options": "{name}的選項",
+  "Could not save profile photo": "無法儲存個人資料照片",
+  "Deep black (AMOLED)": "AMOLED 深黑模式",
+  "Photo saved on this device": "照片會儲存在此裝置",
+  "Profile photo": "個人資料照片",
+  "User messages": "使用者訊息",
+  "Your initials are shown": "將顯示您的姓名縮寫",
 };
 
 export const PEER_MESSAGE_FORMS = { other: "與{peer}的 {count} 則訊息" };

@@ -1531,6 +1531,12 @@ export const RU_MESSAGES: Record<string, string> = {
   "Read from the page, not checked": "Прочитано со страницы, не проверено",
   Total: "Итого",
   "{name} options": "Опции: {name}",
+  "Could not save profile photo": "Не удалось сохранить фото профиля",
+  "Deep black (AMOLED)": "Глубокий чёрный (AMOLED)",
+  "Photo saved on this device": "Фото сохранено на этом устройстве",
+  "Profile photo": "Фото профиля",
+  "User messages": "Сообщения пользователя",
+  "Your initials are shown": "Будут показаны ваши инициалы",
 };
 
 export const PEER_MESSAGE_FORMS: Partial<Record<Intl.LDMLPluralRule, string>> = {

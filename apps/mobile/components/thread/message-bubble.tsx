@@ -10,7 +10,7 @@ import {
 } from "@rakazo/core";
 import { fontWeight, typeScale } from "@rakazo/ui-tokens";
 import type { ComponentProps } from "react";
-import { memo, useContext, useMemo, useState } from "react";
+import { memo, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import type { TextProps } from "react-native";
 import { Alert, Pressable, Text, View } from "react-native";
 import type { MobileBot, MobileMessage, MobileSnapshot } from "../../lib/api";
@@ -22,6 +22,10 @@ import { allowsSpace } from "../../lib/ask-action-label";
 import { plainAskTitle } from "../../lib/ask-title";
 import { t, useI18n } from "../../lib/i18n";
 import { isInlineImageBlock } from "../../lib/inline-image";
+import {
+  getCachedMessageBubbleColors,
+  subscribeMessageBubbleColors,
+} from "../../lib/message-bubble-colors";
 import {
   mentionedBots,
   textWithMentions,
@@ -248,7 +252,12 @@ const MessageBubbleContent = memo(function MessageBubbleContent({
   userBubble?: UserBubble;
 }) {
   const colorScheme = useResolvedAppearance();
-  const tokens = withUserBubble(mobileTokens(), userBubble);
+  const bubbleColors = useSyncExternalStore(
+    subscribeMessageBubbleColors,
+    getCachedMessageBubbleColors,
+    getCachedMessageBubbleColors,
+  );
+  const tokens = withUserBubble(mobileTokens(), userBubble, bubbleColors);
   const { t } = useI18n();
   const [peerExpanded, setPeerExpanded] = useState(false);
   const outgoing = message.role === "user" && !authorName;
@@ -540,7 +549,12 @@ const MessageBubbleContent = memo(function MessageBubbleContent({
           <View style={hasInlineImages ? bubbleStyle : undefined}>
             {(showBotSenderName || authorName) && speaker ? (
               <Text
-                style={{ color: speakerColor ?? tokens.mutedForeground, ...typeScale.footnote }}
+                style={{
+                  color: bubbleColors.agent
+                    ? tokens.foreground
+                    : (speakerColor ?? tokens.mutedForeground),
+                  ...typeScale.footnote,
+                }}
               >
                 {speaker}
               </Text>

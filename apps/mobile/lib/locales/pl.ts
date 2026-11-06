@@ -1484,6 +1484,12 @@ export const PL_MESSAGES: Record<string, string> = {
   "Read from the page, not checked": "Odczytane ze strony, niesprawdzone",
   Total: "Razem",
   "{name} options": "Opcje modelu {name}",
+  "Could not save profile photo": "Nie udało się zapisać zdjęcia profilowego",
+  "Deep black (AMOLED)": "Głęboka czerń (AMOLED)",
+  "Photo saved on this device": "Zdjęcie zapisane na tym urządzeniu",
+  "Profile photo": "Zdjęcie profilowe",
+  "User messages": "Wiadomości użytkownika",
+  "Your initials are shown": "Wyświetlane są Twoje inicjały",
 };
 
 export const PEER_MESSAGE_FORMS: Partial<Record<Intl.LDMLPluralRule, string>> = {

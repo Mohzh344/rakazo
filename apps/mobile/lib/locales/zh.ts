@@ -1493,6 +1493,12 @@ export const ZH_MESSAGES: Record<string, string> = {
   "Read from the page, not checked": "读取自页面，未核实",
   Total: "合计",
   "{name} options": "{name}的选项",
+  "Could not save profile photo": "无法保存个人资料照片",
+  "Deep black (AMOLED)": "AMOLED 深黑模式",
+  "Photo saved on this device": "照片仅保存在此设备上",
+  "Profile photo": "个人资料照片",
+  "User messages": "用户消息",
+  "Your initials are shown": "将显示您的姓名首字母",
 };
 
 export const PEER_MESSAGE_FORMS: Partial<Record<Intl.LDMLPluralRule, string>> = {

@@ -1,15 +1,18 @@
 import { MenuView } from "@expo/ui/community/menu";
 import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { useSyncExternalStore } from "react";
+import { Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { mobileTokens, resolveMobileAppearance } from "../lib/appearance";
 import type { CreateAction } from "../lib/create-chooser";
 import { createMenuActions, isCreateAction } from "../lib/create-chooser";
 import { useI18n } from "../lib/i18n";
 import { useThemedStyles } from "../lib/native";
+import { getCachedProfileAvatarUri, subscribeProfileAvatar } from "../lib/profile-avatar";
 import { CREATE_MENU_GAP, createHomeStyles } from "./home-styles";
 import { NativeSymbol } from "./native-symbol";
+import { ProfileAvatar } from "./profile-avatar";
 
 /** The inbox's own header where the native Liquid Glass bar is unavailable. */
 export function InboxHeader({
@@ -33,6 +36,11 @@ export function InboxHeader({
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const profileAvatarUri = useSyncExternalStore(
+    subscribeProfileAvatar,
+    getCachedProfileAvatarUri,
+    getCachedProfileAvatarUri,
+  );
   return (
     <View
       style={[
@@ -46,7 +54,7 @@ export function InboxHeader({
     >
       <View style={styles.circleButton}>
         <HeaderButton accessibilityLabel={t("Account")} onPress={() => router.push("/account")}>
-          <Text style={styles.profileInitials}>{initials}</Text>
+          <ProfileAvatar uri={profileAvatarUri} initials={initials} size={40} />
         </HeaderButton>
       </View>
       {title}

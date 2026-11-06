@@ -2,7 +2,7 @@ import { ChatMarkdown } from "@rakazo/chat-ui/native";
 import type { MessageBlock } from "@rakazo/contracts";
 import { cloudAgentHttpsUrl, displayName as safeDisplayName } from "@rakazo/core";
 import { typeScale } from "@rakazo/ui-tokens";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -13,6 +13,10 @@ import Animated, {
 import type { MobileBot, MobileSnapshot } from "../../lib/api";
 import { mobileTokens } from "../../lib/appearance";
 import { useI18n } from "../../lib/i18n";
+import {
+  getCachedMessageBubbleColors,
+  subscribeMessageBubbleColors,
+} from "../../lib/message-bubble-colors";
 import { useResolvedAppearance } from "../../lib/native";
 import type { UserBubble } from "../../lib/user-bubble";
 import { withUserBubble } from "../../lib/user-bubble";
@@ -53,7 +57,12 @@ function HelperMessageCard({
   special: Extract<MessageBlock, { kind: "subagent" }>;
 }) {
   const colorScheme = useResolvedAppearance();
-  const tokens = withUserBubble(mobileTokens(), userBubble);
+  const bubbleColors = useSyncExternalStore(
+    subscribeMessageBubbleColors,
+    getCachedMessageBubbleColors,
+    getCachedMessageBubbleColors,
+  );
+  const tokens = withUserBubble(mobileTokens(), userBubble, bubbleColors);
   const { t } = useI18n();
   const helperHeader = useRef<View>(null);
   const helperCard = useRef<View>(null);

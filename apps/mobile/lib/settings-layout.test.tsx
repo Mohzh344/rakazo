@@ -78,7 +78,7 @@ describe("settings sheet header", () => {
     });
     Platform.OS = "android";
     expect(headerOptions("models", ["account", "models"])).toMatchObject({
-      animation: "simple_push",
+      animation: "slide_from_right",
       freezeOnBlur: true,
     });
     Platform.OS = "web";

@@ -1491,6 +1491,12 @@ export const NL_MESSAGES: Record<string, string> = {
   "Read from the page, not checked": "Van de pagina gelezen, niet gecontroleerd",
   Total: "Totaal",
   "{name} options": "Opties voor {name}",
+  "Could not save profile photo": "Profielfoto kan niet worden opgeslagen",
+  "Deep black (AMOLED)": "Diep zwart (AMOLED)",
+  "Photo saved on this device": "Foto opgeslagen op dit apparaat",
+  "Profile photo": "Profielfoto",
+  "User messages": "Berichten van gebruiker",
+  "Your initials are shown": "Je initialen worden getoond",
 };
 
 export const PEER_MESSAGE_FORMS: Partial<Record<Intl.LDMLPluralRule, string>> = {

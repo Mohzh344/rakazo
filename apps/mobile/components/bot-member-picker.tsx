@@ -1,6 +1,12 @@
 import { GROUP_MEMBER_MAX, GROUP_MEMBER_MIN } from "@rakazo/contracts";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import Animated, {
+  FadeInDown,
+  FadeOutUp,
+  LinearTransition,
+  useReducedMotion,
+} from "react-native-reanimated";
 import type { MobileBot } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { native, useMobileTokens } from "../lib/native";
@@ -26,6 +32,7 @@ export function BotMemberPicker({
 }) {
   const { t } = useI18n();
   const tokens = useMobileTokens();
+  const reduceMotion = useReducedMotion();
   const [expanded, setExpanded] = useState(initiallyExpanded);
   const [query, setQuery] = useState("");
   // Bots ever picked this session stay listed when collapsed so an unchecked
@@ -48,7 +55,11 @@ export function BotMemberPicker({
         />
       </View>
       {expanded ? (
-        <>
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeInDown.duration(180)}
+          exiting={reduceMotion ? undefined : FadeOutUp.duration(140)}
+          layout={reduceMotion ? undefined : LinearTransition.duration(200)}
+        >
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -67,7 +78,7 @@ export function BotMemberPicker({
           <Text style={{ color: tokens.mutedForeground, fontSize: 14, marginTop: 8 }}>
             {t("Pick {min}–{max}", { min: GROUP_MEMBER_MIN, max: GROUP_MEMBER_MAX })}
           </Text>
-        </>
+        </Animated.View>
       ) : null}
       <View>
         {visible.map((bot) => {
@@ -85,31 +96,38 @@ export function BotMemberPicker({
             </>
           );
           return (
-            <View key={bot.id} style={styles.row}>
-              {onOpenBot ? (
-                <Pressable
-                  accessibilityRole="button"
+            <Animated.View
+              key={bot.id}
+              entering={reduceMotion ? undefined : FadeInDown.duration(160)}
+              exiting={reduceMotion ? undefined : FadeOutUp.duration(120)}
+              layout={reduceMotion ? undefined : LinearTransition.duration(180)}
+            >
+              <View style={styles.row}>
+                {onOpenBot ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={bot.name}
+                    disabled={disabled}
+                    onPress={() => onOpenBot(bot)}
+                    style={({ pressed }) => [styles.identity, { opacity: pressed ? 0.6 : 1 }]}
+                  >
+                    {identity}
+                  </Pressable>
+                ) : (
+                  identity
+                )}
+                <NativeSwitch
                   accessibilityLabel={bot.name}
-                  disabled={disabled}
-                  onPress={() => onOpenBot(bot)}
-                  style={({ pressed }) => [styles.identity, { opacity: pressed ? 0.6 : 1 }]}
-                >
-                  {identity}
-                </Pressable>
-              ) : (
-                identity
-              )}
-              <NativeSwitch
-                accessibilityLabel={bot.name}
-                disabled={disabled || (!checked && selected.length >= GROUP_MEMBER_MAX)}
-                onValueChange={(next) => {
-                  if (next && selected.length >= GROUP_MEMBER_MAX) return;
-                  if (next) setEverPicked((current) => new Set(current).add(bot.id));
-                  onChange(next ? [...selected, bot.id] : selected.filter((id) => id !== bot.id));
-                }}
-                value={checked}
-              />
-            </View>
+                  disabled={disabled || (!checked && selected.length >= GROUP_MEMBER_MAX)}
+                  onValueChange={(next) => {
+                    if (next && selected.length >= GROUP_MEMBER_MAX) return;
+                    if (next) setEverPicked((current) => new Set(current).add(bot.id));
+                    onChange(next ? [...selected, bot.id] : selected.filter((id) => id !== bot.id));
+                  }}
+                  value={checked}
+                />
+              </View>
+            </Animated.View>
           );
         })}
         {visible.length === 0 ? (

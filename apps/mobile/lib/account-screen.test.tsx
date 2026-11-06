@@ -97,6 +97,17 @@ vi.mock("react-native", () => ({
     }),
   View: element("div"),
 }));
+vi.mock("react-native-reanimated", () => {
+  const preset = { duration: () => preset };
+  return {
+    __esModule: true,
+    default: { View: element("div") },
+    FadeInDown: preset,
+    FadeOutUp: preset,
+    LinearTransition: preset,
+    useReducedMotion: () => true,
+  };
+});
 vi.mock("@expo/ui/community/menu", () => ({
   MenuView: ({
     children,
@@ -366,14 +377,19 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("offers no avatar style choice in account settings", async () => {
+it("opens dedicated appearance settings and offers no avatar style choice in account", async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
   await act(async () => root?.render(<Account />));
 
-  expect(container.querySelector('[aria-label="Appearance"]')).not.toBeNull();
+  const appearanceRow = Array.from(
+    container.querySelectorAll<HTMLButtonElement>("button[data-row]"),
+  ).find((button) => button.textContent === "Appearance");
+  expect(appearanceRow).toBeDefined();
+  await act(async () => appearanceRow?.click());
+  expect(account.push).toHaveBeenCalledExactlyOnceWith("/appearance");
   expect(container.textContent).toContain("Language");
   expect(container.querySelector('[aria-label="Avatar style"]')).toBeNull();
   expect(container.textContent).not.toContain("Avatars");

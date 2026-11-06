@@ -15,15 +15,15 @@ vi.mock("./appearance", () => ({
   }),
 }));
 
-it("sizes the chat title like the header buttons beside it", () => {
+it("sizes the chat title like the header buttons and reserves room for two name lines", () => {
   const { titleCapsule } = createThreadHeaderStyles();
   expect(titleCapsule.minHeight).toBe(HEADER_CONTROL_SIZE);
-  expect(titleCapsule).not.toHaveProperty("paddingVertical");
+  expect(titleCapsule).toMatchObject({ maxWidth: 280, paddingVertical: 3 });
 });
 
-it("pads the chat title 14 at its start and 10 at its end, mirrored for right-to-left", () => {
+it("pads the chat title evenly at its start and end, mirrored for right-to-left", () => {
   const { titleCapsule } = createThreadHeaderStyles();
-  expect(titleCapsule).toMatchObject({ paddingStart: 14, paddingEnd: 10 });
+  expect(titleCapsule).toMatchObject({ paddingStart: 11, paddingEnd: 9 });
   for (const side of ["paddingHorizontal", "paddingLeft", "paddingRight"]) {
     expect(titleCapsule).not.toHaveProperty(side);
   }
@@ -40,12 +40,12 @@ it("lets a long chat name give way to the avatars beside it", () => {
   expect(title.flexShrink).toBe(1);
 });
 
-it("sets the chat title in medium 17 on a 22 line, in the text colour", () => {
+it("sets the chat title in compact, readable type so two lines fit beside the avatar", () => {
   const { title } = createThreadHeaderStyles();
   expect(title).toMatchObject({
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: "500",
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: "600",
     color: "foreground",
   });
 });

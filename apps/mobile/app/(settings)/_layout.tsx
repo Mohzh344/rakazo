@@ -19,12 +19,7 @@ export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={({ navigation, route }) => ({
-        animation:
-          Platform.OS === "android"
-            ? "simple_push"
-            : Platform.OS === "ios"
-              ? "slide_from_right"
-              : undefined,
+        animation: Platform.OS === "web" ? undefined : "slide_from_right",
         freezeOnBlur: Platform.OS !== "web",
         headerStyle: { backgroundColor: tokens.background },
         ...floatingHeaderOptions(),
@@ -72,6 +67,7 @@ export default function SettingsLayout() {
           contentStyle: { backgroundColor: native.groupedPage },
         }}
       />
+      <Stack.Screen name="appearance" options={glassHeaderOptions(t("Appearance"))} />
       <Stack.Screen name="ai-data-sharing" options={glassHeaderOptions(t("AI data sharing"))} />
       <Stack.Screen name="archived-bots" options={{ title: t("Archived") }} />
       <Stack.Screen name="change-password" options={{ title: t("Change password") }} />

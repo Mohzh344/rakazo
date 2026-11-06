@@ -1,4 +1,3 @@
-import { typeScale } from "@rakazo/ui-tokens";
 import { StyleSheet } from "react-native";
 import { mobileTokens } from "../lib/appearance";
 import { transparentColor } from "../lib/color";
@@ -12,10 +11,11 @@ export function createThreadHeaderStyles() {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      maxWidth: 220,
+      maxWidth: 280,
       minHeight: HEADER_CONTROL_SIZE,
-      paddingStart: 14,
-      paddingEnd: 10,
+      paddingVertical: 3,
+      paddingStart: 11,
+      paddingEnd: 9,
       borderRadius: 999,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: tokens.glassStroke,
@@ -29,9 +29,11 @@ export function createThreadHeaderStyles() {
       backgroundColor: tokens.glassFill,
     },
     title: {
-      // A long name gives way to the avatars beside it and ends in "…".
+      // Two compact lines give the agent's full name room beside its avatar.
       flexShrink: 1,
-      ...typeScale.cardTitle,
+      fontSize: 13,
+      lineHeight: 16,
+      fontWeight: "600",
       color: tokens.foreground,
     },
     headerActions: {

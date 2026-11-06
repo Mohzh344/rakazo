@@ -1524,6 +1524,12 @@ export const JA_MESSAGES: Record<string, string> = {
   "Read from the page, not checked": "ページから読み取り、未確認",
   Total: "合計",
   "{name} options": "{name}のオプション",
+  "Could not save profile photo": "プロフィール写真を保存できませんでした",
+  "Deep black (AMOLED)": "ディープブラック（AMOLED）",
+  "Photo saved on this device": "写真はこの端末に保存されます",
+  "Profile photo": "プロフィール写真",
+  "User messages": "ユーザーのメッセージ",
+  "Your initials are shown": "イニシャルが表示されます",
 };
 
 export const PEER_MESSAGE_FORMS = { other: "{peer}とのメッセージ{count}件" };

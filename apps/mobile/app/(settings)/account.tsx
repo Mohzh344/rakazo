@@ -15,6 +15,12 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, {
+  FadeInDown,
+  FadeOutUp,
+  LinearTransition,
+  useReducedMotion,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAccountDeletion } from "../../components/account-deletion";
 import { AppMark } from "../../components/app-mark";
@@ -22,6 +28,7 @@ import { ApprovalModeRow, ApprovalRulesRow } from "../../components/approval-set
 import { NameDialog } from "../../components/name-dialog";
 import { NativeActionButton } from "../../components/native-action-button";
 import { NativeSegmentedControl } from "../../components/native-segmented-control";
+import { ProfileAvatar } from "../../components/profile-avatar";
 import {
   SettingsGroup,
   SettingsLabel,
@@ -43,11 +50,7 @@ import {
   updateAccountName,
 } from "../../lib/api";
 import { formatUpdateLabel, getAppVersionInfo } from "../../lib/app-version";
-import {
-  getCachedAppearancePreference,
-  mobileTokens,
-  setAppearancePreference,
-} from "../../lib/appearance";
+import { mobileTokens } from "../../lib/appearance";
 import { useApprovalSettings } from "../../lib/approval-settings";
 import { archivedChatCounts, loadArchivedChats } from "../../lib/archived-chats";
 import { replaceWithSignIn } from "../../lib/auth-routing";
@@ -79,6 +82,12 @@ import {
   passkeysAvailable,
   renamePasskey,
 } from "../../lib/passkey";
+import {
+  chooseProfileAvatar,
+  getCachedProfileAvatarUri,
+  removeProfileAvatar,
+  subscribeProfileAvatar,
+} from "../../lib/profile-avatar";
 import { registerPushToken } from "../../lib/push";
 import { createQueuedSave } from "../../lib/queued-save";
 import {
@@ -109,9 +118,16 @@ let hapticsSaveVersion = 0;
 export default function Account() {
   const sideInsets = useSideInsets();
   const { t, locale } = useI18n();
+  const reduceMotion = useReducedMotion();
   const router = useRouter();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
   const [me, setMe] = useState<MobileMe | null>(null);
+  const profileAvatarUri = useSyncExternalStore(
+    subscribeProfileAvatar,
+    getCachedProfileAvatarUri,
+    getCachedProfileAvatarUri,
+  );
+  const [profilePhotoPending, setProfilePhotoPending] = useState(false);
   const botStyleRequest = useRef(0);
   const account = accountDisplay(me ?? {}, t("Your account"));
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
@@ -180,7 +196,6 @@ export default function Account() {
   const [usage, setUsage] = useState<UsageSummary | null>(null);
   // Messaging appears only on servers that have a chat app connected, as on web.
   const [messagingEnabled, setMessagingEnabled] = useState(false);
-  const appearance = getCachedAppearancePreference();
   const streamReplies = useSyncExternalStore(
     subscribeResponseStreaming,
     getCachedResponseStreamingEnabled,
@@ -457,6 +472,19 @@ export default function Account() {
     );
   }
 
+  async function profilePhotoAction(action: string) {
+    if (profilePhotoPending) return;
+    setProfilePhotoPending(true);
+    try {
+      if (action === "choose") await chooseProfileAvatar();
+      else if (action === "remove") await removeProfileAvatar();
+    } catch (cause) {
+      Alert.alert(t("Could not continue"), errorText(cause, t("Could not save profile photo")));
+    } finally {
+      setProfilePhotoPending(false);
+    }
+  }
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.screen}>
       <ScrollView
@@ -489,6 +517,30 @@ export default function Account() {
             dimmed={namePending}
             onPress={editName}
           />
+          <MenuView
+            actions={[
+              { id: "choose", title: t(profileAvatarUri ? "Change photo" : "Choose photo") },
+              ...(profileAvatarUri
+                ? [{ id: "remove", title: t("Remove photo"), attributes: { destructive: true } }]
+                : []),
+            ]}
+            colorScheme={colorScheme}
+            onPressAction={({ nativeEvent }) => void profilePhotoAction(nativeEvent.event)}
+            title={t("Profile photo")}
+          >
+            <SettingsRow
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel={t("Profile photo")}
+              detail={
+                profileAvatarUri ? t("Photo saved on this device") : t("Your initials are shown")
+              }
+              dimmed={profilePhotoPending}
+              leading={<ProfileAvatar uri={profileAvatarUri} size={44} />}
+              title={t("Profile photo")}
+              trailing={profilePhotoPending ? <ActivityIndicator /> : undefined}
+            />
+          </MenuView>
           {focus !== "usage" ? usageBlock : null}
         </SettingsGroup>
 
@@ -610,20 +662,14 @@ export default function Account() {
           </SettingsGroup>
         ) : null}
 
-        <View accessibilityLabel={t("Appearance")} style={styles.section}>
-          <SettingsLabel>{t("Appearance")}</SettingsLabel>
-          <NativeSegmentedControl
-            accessibilityLabel={t("Appearance")}
-            onChange={(value) => void setAppearancePreference(value)}
-            options={[
-              { value: "system", label: t("System") },
-              { value: "light", label: t("Light") },
-              { value: "dark", label: t("Dark") },
-              { value: "amoled", label: `${t("Dark")} (AMOLED)` },
-            ]}
-            value={appearance}
+        <SettingsGroup>
+          <SettingsRow
+            accessibilityRole="button"
+            chevron="right"
+            onPress={() => router.push("/appearance")}
+            title={t("Appearance")}
           />
-        </View>
+        </SettingsGroup>
 
         {me?.botAvatarSet ? (
           <View accessibilityLabel={t("Bot style")} style={styles.section}>
@@ -799,18 +845,29 @@ export default function Account() {
             title={t("Advanced")}
           />
           {advancedOpen ? (
-            <SettingsSwitch
-              label={t("Stream replies")}
-              value={streamReplies}
-              onChange={(checked) => void setResponseStreamingPreference(checked ? "on" : "off")}
-            />
-          ) : null}
-          {advancedOpen ? (
-            <SettingsSwitch
-              label={loadRemoteImagesLabel}
-              value={loadRemoteImages}
-              onChange={(checked) => void setRemoteImagesPreference(checked ? "on" : "off")}
-            />
+            <Animated.View
+              entering={reduceMotion ? undefined : FadeInDown.duration(180)}
+              exiting={reduceMotion ? undefined : FadeOutUp.duration(140)}
+              layout={reduceMotion ? undefined : LinearTransition.duration(200)}
+            >
+              <SettingsSwitch
+                label={t("Stream replies")}
+                value={streamReplies}
+                onChange={(checked) => void setResponseStreamingPreference(checked ? "on" : "off")}
+              />
+              <View
+                style={{
+                  height: StyleSheet.hairlineWidth,
+                  marginStart: 16,
+                  backgroundColor: native.separator,
+                }}
+              />
+              <SettingsSwitch
+                label={loadRemoteImagesLabel}
+                value={loadRemoteImages}
+                onChange={(checked) => void setRemoteImagesPreference(checked ? "on" : "off")}
+              />
+            </Animated.View>
           ) : null}
         </SettingsGroup>
 

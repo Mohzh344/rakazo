@@ -1402,6 +1402,22 @@ export const AR_MESSAGES: Record<string, string> = {
   "{summary} Your backup models also failed.": "{summary} نماذج النسخ الاحتياطي الخاصة بك فشلت أيضًا.",
   "{variable} is reserved. Choose another name.": "{variable} محجوزة. اختر اسمًا آخر.",
   "{vcpus} vCPU, {memoryGb} GB, {hours} computer hours a month": "{vcpus} vCPU، {memoryGb} GB، {hours} ساعات الكمبيوتر شهريًا",
+  "Blue": "أزرق",
+  "Change photo": "تغيير الصورة",
+  "Charcoal": "فحمي",
+  "Choose photo": "اختيار صورة",
+  "Could not save profile photo": "تعذر حفظ صورة الملف الشخصي",
+  "Deep black (AMOLED)": "أسود عميق (AMOLED)",
+  "Green": "أخضر",
+  "Photo saved on this device": "تُحفظ الصورة على هذا الجهاز",
+  "Profile photo": "صورة الملف الشخصي",
+  "Rose": "وردي",
+  "Teal": "أزرق مخضر",
+  "User messages": "رسائل المستخدم",
+  "Violet": "بنفسجي",
+  "White": "أبيض",
+  "Your initials are shown": "تظهر الأحرف الأولى من اسمك",
+  "{color} color": "لون {color}",
 };
 
 export const PEER_MESSAGE_FORMS: Record<"zero" | "one" | "two" | "few" | "many" | "other", string> = {

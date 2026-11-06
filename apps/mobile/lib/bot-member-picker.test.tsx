@@ -67,6 +67,18 @@ vi.mock("react-native", () => {
     Alert: { alert: vi.fn() },
   };
 });
+vi.mock("react-native-reanimated", () => {
+  const preset = { duration: () => preset };
+  const Animated = { View: ({ children }: { children?: ReactNode }) => <div>{children}</div> };
+  return {
+    __esModule: true,
+    default: Animated,
+    FadeInDown: preset,
+    FadeOutUp: preset,
+    LinearTransition: preset,
+    useReducedMotion: () => true,
+  };
+});
 vi.mock("./native", () => ({ native: {}, useMobileTokens: () => ({}) }));
 vi.mock("./i18n", () => ({
   useI18n: () => ({
