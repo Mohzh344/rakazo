@@ -4,6 +4,8 @@ import { htmlLangForLocale, normalizeUiLocale, resolveUiLocale } from "./ui-loca
 describe("normalizeUiLocale", () => {
   it("maps regional tags onto supported locales", () => {
     expect(normalizeUiLocale("en-US")).toBe("en");
+    expect(normalizeUiLocale("ar-MA")).toBe("ar");
+    expect(normalizeUiLocale("ar-SA")).toBe("ar");
     expect(normalizeUiLocale("zh-CN")).toBe("zh-CN");
     expect(normalizeUiLocale("zh")).toBe("zh-CN");
     expect(normalizeUiLocale("zh-Hans")).toBe("zh-CN");
@@ -66,6 +68,7 @@ describe("htmlLangForLocale", () => {
   it("keeps Simplified Chinese on zh-CN", () => {
     expect(htmlLangForLocale("zh-CN")).toBe("zh-CN");
     expect(htmlLangForLocale("en")).toBe("en");
+    expect(htmlLangForLocale("ar")).toBe("ar");
   });
 });
 

@@ -1,0 +1,119 @@
+name: Fork Android ARM64 APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-android-arm64-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build signed arm64 APK on EAS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      EXPO_OWNER: ${{ vars.EXPO_OWNER }}
+      EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Require a separate Expo project
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$EXPO_TOKEN" ]]; then
+            echo "Add the EXPO_TOKEN repository secret for the fork's Expo account." >&2
+            exit 1
+          fi
+          if [[ -z "$EXPO_OWNER" || -z "$EXPO_PROJECT_ID" ]]; then
+            echo "Add EXPO_OWNER and EXPO_PROJECT_ID as repository Actions variables." >&2
+            exit 1
+          fi
+          if [[ "$EXPO_PROJECT_ID" == "07f7eb04-45e3-47fe-9374-99a2f991131e" ]]; then
+            echo "The fork must use a separate Expo project and signing key, not the upstream project." >&2
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Set up Expo
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
+        with:
+          eas-version: latest
+          packager: pnpm
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check mobile app
+        run: pnpm --filter @rakazo/mobile check
+
+      - name: Require the production API environment
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          vars="$(eas env:list production --format short)"
+          if ! grep -q '^EXPO_PUBLIC_API_URL=' <<< "$vars"; then
+            echo "Set EXPO_PUBLIC_API_URL in the fork's EAS production environment (HTTPS required)." >&2
+            exit 1
+          fi
+          remote_owner="$(sed -n 's/^EXPO_OWNER=//p' <<< "$vars" | tail -n1)"
+          remote_project_id="$(sed -n 's/^EXPO_PROJECT_ID=//p' <<< "$vars" | tail -n1)"
+          if [[ "$remote_owner" != "$EXPO_OWNER" || "$remote_project_id" != "$EXPO_PROJECT_ID" ]]; then
+            echo "Set matching EXPO_OWNER and EXPO_PROJECT_ID values in the EAS production environment." >&2
+            exit 1
+          fi
+          if ! grep -q '^GOOGLE_SERVICES_JSON=' <<< "$vars"; then
+            echo "::warning::GOOGLE_SERVICES_JSON is not set; Android push notifications will not be configured in this APK."
+          fi
+
+      - name: Build and verify ARM64 APK
+        id: build
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          eas build --platform android --profile fork-android-arm64 --non-interactive --freeze-credentials --wait --json > "$RUNNER_TEMP/build.json"
+          url="$(jq -r '.[0].artifacts.applicationArchiveUrl // .[0].artifacts.buildUrl' "$RUNNER_TEMP/build.json")"
+          version="$(jq -r '.[0].appVersion' "$RUNNER_TEMP/build.json")"
+          version_code="$(jq -r '.[0].appBuildVersion' "$RUNNER_TEMP/build.json")"
+          if [[ -z "$url" || "$url" == "null" || "$url" != https://* ]]; then
+            echo "EAS did not return a secure APK download URL." >&2
+            exit 1
+          fi
+          apk="$RUNNER_TEMP/rakazo-android-arm64.apk"
+          curl --fail --location --silent --show-error --output "$apk" "$url"
+          if [[ "$(head -c 2 "$apk")" != "PK" ]]; then
+            echo "The EAS artifact is not an APK." >&2
+            exit 1
+          fi
+          abis="$(unzip -Z1 "$apk" | awk -F/ '$1 == "lib" && NF >= 3 { print $2 }' | sort -u | paste -sd ' ' -)"
+          if [[ "$abis" != "arm64-v8a" ]]; then
+            echo "Expected only arm64-v8a native libraries; found: ${abis:-none}." >&2
+            exit 1
+          fi
+          echo "apk=$apk" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version_code=$version_code" >> "$GITHUB_OUTPUT"
+
+      - name: Upload installable APK artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rakazo-android-arm64-v${{ steps.build.outputs.version }}-${{ steps.build.outputs.version_code }}
+          path: ${{ steps.build.outputs.apk }}
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="rakazo_channel_live">حالة الوكيل المباشرة</string>
+  <string name="rakazo_channel_messages">رسائل الوكلاء</string>
+  <string name="rakazo_channel_scheduled">المهام المجدولة</string>
+  <string name="rakazo_channel_attention">يتطلب الانتباه</string>
+  <string name="rakazo_live_one">يعمل %1$s الآن</string>
+  <string name="rakazo_live_many">يعمل %1$s و%2$d آخرون الآن</string>
+  <string name="rakazo_live_working">جارٍ العمل</string>
+  <string name="rakazo_scheduled_title">مهمة مجدولة · %1$s</string>
+  <string name="rakazo_replied_group">ردّ %1$s في %2$s</string>
+  <string name="rakazo_replied">ردّ %1$s</string>
+  <string name="rakazo_attention_failed">واجه %1$s مشكلة</string>
+  <string name="rakazo_attention_takeover">يحتاج %1$s إلى تفاعلك على الشاشة</string>
+  <string name="rakazo_attention_input">يحتاج %1$s إلى إدخالك</string>
+</resources>

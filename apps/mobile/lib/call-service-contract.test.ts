@@ -54,6 +54,7 @@ describe("Android call foreground service", () => {
   it("provides call strings in every shipped mobile locale", () => {
     const directories = {
       en: "values",
+      ar: "values-ar",
       "zh-CN": "values-zh-rCN",
       "zh-TW": "values-zh-rTW",
       ru: "values-ru",

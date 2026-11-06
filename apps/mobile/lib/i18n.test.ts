@@ -116,6 +116,21 @@ describe("mobile i18n", () => {
     expect(t("Delete {name}?", { name: "Scout" })).toBe("¿Eliminar Scout?");
   });
 
+  it("translates Arabic chrome and formats Arabic dates", async () => {
+    const { resetI18nForTests, t, dateLocaleForUi } = await import("./i18n");
+    resetI18nForTests("ar");
+    expect(t("Account")).toBe("الحساب");
+    expect(t("Language")).toBe("اللغة");
+    expect(t("Settings")).toBe("الإعدادات");
+    expect(t("Apply")).toBe("تطبيق");
+    expect(t("Clear conversation")).toBe("مسح المحادثة");
+    expect(t("Block")).toBe("حظر");
+    expect(t("Active model")).toBe("النموذج النشط");
+    expect(t("Bot models")).toBe("نماذج الوكلاء");
+    expect(t("Artifacts")).toBe("مخرجات");
+    expect(dateLocaleForUi()).toBe("ar");
+  });
+
   it("translates Polish chrome and preserves interpolations", async () => {
     const { resetI18nForTests, t, dateLocaleForUi } = await import("./i18n");
     const { PL_MESSAGES } = await import("./locales/pl");
@@ -160,6 +175,31 @@ describe("mobile i18n", () => {
     },
   );
 
+  it.each([
+    [0, "zero"],
+    [2, "two"],
+    [3, "few"],
+    [10, "few"],
+    [11, "many"],
+    [99, "many"],
+    [100, "other"],
+    [102, "other"],
+    [1.5, "other"],
+  ] as const)(
+    "uses the Arabic %s exchange count form %s without Intl.PluralRules",
+    async (count, form) => {
+      const { peerExchangeLabel, resetI18nForTests } = await import("./i18n");
+      const { PEER_MESSAGE_FORMS } = await import("./locales/ar");
+      vi.stubGlobal("Intl", { PluralRules: undefined });
+      resetI18nForTests("ar");
+      for (const direction of ["sent", "received"] as const) {
+        expect(peerExchangeLabel(count, direction, "Scout")).toBe(
+          PEER_MESSAGE_FORMS[form]?.replace("{count}", String(count)).replace("{peer}", "Scout"),
+        );
+      }
+    },
+  );
+
   it("keeps the direction of a single Polish peer message", async () => {
     const { peerExchangeLabel, resetI18nForTests, t } = await import("./i18n");
     resetI18nForTests("pl");
@@ -170,6 +210,7 @@ describe("mobile i18n", () => {
   });
 
   it("preserves interpolations in every non-English catalog", async () => {
+    const { AR_MESSAGES } = await import("./locales/ar");
     const { ZH_MESSAGES } = await import("./locales/zh");
     const { ZH_TW_MESSAGES } = await import("./locales/zh-TW");
     const { RU_MESSAGES } = await import("./locales/ru");
@@ -179,6 +220,7 @@ describe("mobile i18n", () => {
     const { ES_MESSAGES } = await import("./locales/es");
     const { PL_MESSAGES } = await import("./locales/pl");
     for (const messages of [
+      AR_MESSAGES,
       ZH_MESSAGES,
       ZH_TW_MESSAGES,
       RU_MESSAGES,
@@ -200,6 +242,7 @@ describe("mobile i18n", () => {
   });
 
   it("translates every mobile chrome t() id in every non-English catalog", async () => {
+    const { AR_MESSAGES } = await import("./locales/ar");
     const { ZH_MESSAGES } = await import("./locales/zh");
     const { ZH_TW_MESSAGES } = await import("./locales/zh-TW");
     const { RU_MESSAGES } = await import("./locales/ru");
@@ -265,6 +308,7 @@ describe("mobile i18n", () => {
       for (const id of translationIds(source)) ids.add(id);
     }
     for (const messages of [
+      AR_MESSAGES,
       ZH_MESSAGES,
       ZH_TW_MESSAGES,
       RU_MESSAGES,

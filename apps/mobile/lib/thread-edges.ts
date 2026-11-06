@@ -36,7 +36,7 @@ export function threadHeaderClearance(headerHeight: number) {
 }
 
 export function threadHeaderFloats() {
-  return Platform.OS === "ios";
+  return Platform.OS !== "web";
 }
 
 export function threadEdgeOptions() {

@@ -4,6 +4,7 @@ import { recognitionLocaleTag, speechLocaleTag, supportedSpeechTag } from "./spe
 describe("speechLocaleTag", () => {
   it("maps an app locale to a tag the recognizer accepts", () => {
     expect(speechLocaleTag("es")).toBe("es-ES");
+    expect(speechLocaleTag("ar")).toBe("ar-001");
     expect(speechLocaleTag("pt-BR")).toBe("pt-BR");
     expect(speechLocaleTag("nl")).toBe("nl-NL");
     expect(speechLocaleTag("ja")).toBe("ja-JP");
@@ -19,6 +20,12 @@ describe("recognitionLocaleTag", () => {
       expect(recognitionLocaleTag("pl", speaker)).toBe("pl-PL");
     },
   );
+
+  it("keeps Arabic recognition on the standard language-wide tag", () => {
+    expect(recognitionLocaleTag("ar", null)).toBe("ar-001");
+    expect(recognitionLocaleTag("ar", "ar-MA")).toBe("ar-001");
+    expect(recognitionLocaleTag("ar", "ar-SA")).toBe("ar-001");
+  });
 
   it.each([
     ["es-CL", "es-CL"],

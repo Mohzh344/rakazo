@@ -27,6 +27,7 @@ const keys = [
 
 const resourceDirectories = {
   en: "values",
+  ar: "values-ar",
   "zh-CN": "values-zh-rCN",
   "zh-TW": "values-zh-rTW",
   ru: "values-ru",
@@ -62,6 +63,22 @@ describe("Android notification resources", () => {
     for (const key of keys) {
       const argumentsOf = (value: string) => value.match(/%\d+\$[sd]/g)?.sort() ?? [];
       expect(argumentsOf(polish.get(key) ?? ""), key).toEqual(argumentsOf(source.get(key) ?? ""));
+    }
+  });
+
+  it("preserves every Arabic notification format argument", () => {
+    const entries = (xml: string) =>
+      new Map(
+        [...xml.matchAll(/<string name="([^"]+)">([^<]*)<\/string>/g)].map((match) => [
+          match[1],
+          match[2],
+        ]),
+      );
+    const source = entries(strings("en"));
+    const arabic = entries(strings("ar"));
+    for (const key of keys) {
+      const argumentsOf = (value: string) => value.match(/%\d+\$[sd]/g)?.sort() ?? [];
+      expect(argumentsOf(arabic.get(key) ?? ""), key).toEqual(argumentsOf(source.get(key) ?? ""));
     }
   });
 

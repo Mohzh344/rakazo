@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe("thread scroll edges", () => {
-  it("hides all four edges while keeping the iOS 26 header transparent", () => {
+  it("hides all four edges while keeping the native header transparent", () => {
     expect(threadEdgeOptions()).toEqual({
       headerTransparent: true,
       headerStyle: { backgroundColor: "transparent" },
@@ -52,15 +52,23 @@ describe("thread scroll edges", () => {
     }
   });
 
-  it("preserves the Android tree and header", () => {
+  it("keeps the Android header floating without changing the scroll tree", () => {
     Platform.OS = "android";
     const child = createElement("scroll-view");
     expect(ThreadScrollSurface({ children: child })).toBe(child);
-    expect(threadHeaderFloats()).toBe(false);
+    expect(threadHeaderFloats()).toBe(true);
     expect(threadEdgeOptions()).toEqual({
-      headerTransparent: false,
+      headerTransparent: true,
+      headerStyle: { backgroundColor: "transparent" },
+      headerShadowVisible: false,
       scrollEdgeEffects: threadScrollEdgeEffects,
     });
+  });
+
+  it("keeps the web header in normal document flow", () => {
+    Platform.OS = "web";
+    expect(threadHeaderFloats()).toBe(false);
+    expect(threadEdgeOptions().headerTransparent).toBe(false);
   });
 });
 

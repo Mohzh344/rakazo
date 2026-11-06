@@ -62,6 +62,7 @@ export const TimeZoneSchema = z
 /** An app language code, such as "es", "pt-BR" or "zh-TW". */
 export const AppLocaleSchema = z.enum([
   "en",
+  "ar",
   "de",
   "ko",
   "tr",

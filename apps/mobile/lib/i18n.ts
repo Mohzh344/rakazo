@@ -1,5 +1,6 @@
 import { polishPluralCategory, translate } from "@rakazo/core";
 import { useSyncExternalStore } from "react";
+import { AR_MESSAGES, PEER_MESSAGE_FORMS as AR_PEER_FORMS } from "./locales/ar";
 import { DE_MESSAGES, PEER_MESSAGE_FORMS as DE_PEER_FORMS } from "./locales/de";
 import { ES_MESSAGES, PEER_MESSAGE_FORMS as ES_PEER_FORMS } from "./locales/es";
 import { JA_MESSAGES, PEER_MESSAGE_FORMS as JA_PEER_FORMS } from "./locales/ja";
@@ -12,6 +13,7 @@ import type { UiLocale } from "./ui-locale";
 import { htmlLangForLocale, resolveUiLocale, UI_LOCALE_STORAGE_KEY } from "./ui-locale";
 
 const catalogs: Partial<Record<UiLocale, Record<string, string>>> = {
+  ar: AR_MESSAGES,
   "zh-CN": ZH_MESSAGES,
   "zh-TW": ZH_TW_MESSAGES,
   ru: RU_MESSAGES,
@@ -61,8 +63,8 @@ export function activateUiLocale(locale: UiLocale): UiLocale {
 
 async function applyDirection(locale: UiLocale): Promise<void> {
   try {
-    // Direction follows the active UI locale only (all supported locales are LTR), never the
-    // device language. Applying device RTL here would fight this and reload-loop.
+    // Direction follows the selected UI locale (Arabic is RTL), never the device language.
+    // Applying device RTL here would fight the saved choice and can reload-loop.
     const { applyMobileUiDirection } = await import("./ui-direction");
     applyMobileUiDirection(htmlLangForLocale(locale));
   } catch {
@@ -151,6 +153,7 @@ export function peerExchangeLabel(
       ? t("Messaged {peer}", { peer })
       : t("Message from {peer}", { peer });
   const forms: Partial<Record<UiLocale, Partial<Record<Intl.LDMLPluralRule, string>>>> = {
+    ar: AR_PEER_FORMS,
     ja: JA_PEER_FORMS,
     "zh-TW": ZH_TW_PEER_FORMS,
     de: DE_PEER_FORMS,
@@ -168,6 +171,16 @@ export function peerExchangeLabel(
 }
 
 function pluralCategory(locale: UiLocale, count: number): Intl.LDMLPluralRule {
+  if (locale === "ar") {
+    const absolute = Math.abs(count);
+    const mod100 = absolute % 100;
+    if (absolute === 0) return "zero";
+    if (absolute === 1) return "one";
+    if (absolute === 2) return "two";
+    if (mod100 >= 3 && mod100 <= 10) return "few";
+    if (mod100 >= 11 && mod100 <= 99) return "many";
+    return "other";
+  }
   if (locale === "zh-CN") return "other";
   if (locale === "pl") return polishPluralCategory(count);
   if (locale === "ru") {

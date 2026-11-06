@@ -20,6 +20,14 @@
           }
         }
       ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildArchs": ["arm64-v8a"]
+          }
+        }
+      ],
       "expo-router",
       "expo-secure-store",
       [
@@ -93,12 +101,14 @@
       "./plugins/with-scene-lifecycle",
       "./plugins/with-lan-cleartext",
       "./plugins/with-android-no-gwp-asan",
+      "./plugins/with-android-rtl",
       "./plugins/with-agent-notifications",
       "./plugins/with-android-r8",
       "./plugins/with-app-intents"
     ],
     "locales": {
       "es": "./locales/es.json",
+      "ar": "./locales/ar.json",
       "pl": "./locales/pl.json"
     },
     "ios": {
@@ -125,7 +135,7 @@
       }
     },
     "android": {
-      "package": "com.rakazo.app",
+      "package": "com.mohzh344.rakazo",
       "versionCode": 10,
       "softwareKeyboardLayoutMode": "resize",
       "icon": "./assets/icon.png",

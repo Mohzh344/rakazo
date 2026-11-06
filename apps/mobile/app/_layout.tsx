@@ -46,7 +46,11 @@ import {
   subscribeSessionRejected,
 } from "../lib/api";
 import { clearAppBadge } from "../lib/app-badge";
-import { loadAppearancePreference, mobileTokens } from "../lib/appearance";
+import {
+  getCachedAppearancePreference,
+  loadAppearancePreference,
+  mobileTokens,
+} from "../lib/appearance";
 import { replaceWithSignIn } from "../lib/auth-routing";
 import { AvatarScreenFocus } from "../lib/avatar-life";
 import { installClientUpdates, watchForegroundUpdates } from "../lib/client-update";
@@ -276,7 +280,7 @@ function LayoutContent() {
   // Beside the list a chat swaps in place, the way it does when picked from a sidebar.
   const { split, inboxHidden, foldActive } = useSplitView();
   const canInvite = Boolean(useReferral());
-  const chatAnimation = split ? "none" : undefined;
+  const chatAnimation = split ? "none" : Platform.OS === "android" ? "fade" : undefined;
   const [ready, setReady] = useState(false);
   useNotificationResponses(ready);
   const callSession = useSyncExternalStore(
@@ -305,6 +309,7 @@ function LayoutContent() {
   }, [ready, screen]);
   const [appearanceReady, setAppearanceReady] = useState(false);
   const resolved = useResolvedAppearance();
+  const appearancePreference = getCachedAppearancePreference();
   const loadRemoteImages = useSyncExternalStore(
     subscribeRemoteImages,
     getCachedRemoteImagesEnabled,
@@ -325,7 +330,7 @@ function LayoutContent() {
         notification: tokens.foreground,
       },
     };
-  }, [resolved]);
+  }, [resolved, appearancePreference]);
 
   useEffect(() => {
     if (appearanceReady && ready)
@@ -398,6 +403,7 @@ function LayoutContent() {
                       </AvatarScreenFocus>
                     )}
                     screenOptions={{
+                      animation: Platform.OS === "android" ? "fade_from_bottom" : undefined,
                       headerStyle: { backgroundColor: navigationTheme.colors.background },
                       ...floatingHeaderOptions(),
                       headerTintColor: navigationTheme.colors.text,

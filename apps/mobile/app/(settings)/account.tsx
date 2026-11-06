@@ -619,6 +619,7 @@ export default function Account() {
               { value: "system", label: t("System") },
               { value: "light", label: t("Light") },
               { value: "dark", label: t("Dark") },
+              { value: "amoled", label: "AMOLED" },
             ]}
             value={appearance}
           />

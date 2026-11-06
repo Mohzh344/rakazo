@@ -1,4 +1,7 @@
-import type { AppearancePreference, ResolvedAppearance } from "@rakazo/ui-tokens";
+import type {
+  AppearancePreference as SharedAppearancePreference,
+  ResolvedAppearance,
+} from "@rakazo/ui-tokens";
 import {
   normalizeAppearancePreference,
   resolveAppearance,
@@ -9,7 +12,26 @@ import * as SecureStore from "expo-secure-store";
 import type { ColorSchemeName } from "react-native";
 import { Appearance } from "react-native";
 
-export type { AppearancePreference, ResolvedAppearance };
+export type AppearancePreference = SharedAppearancePreference | "amoled";
+export type { ResolvedAppearance };
+
+const AMOLED_OVERRIDES = {
+  background: "#000000",
+  dialog: "#050505",
+  card: "#080808",
+  popover: "#080808",
+  glassFill: "#151515",
+  glassStroke: "#FFFFFF26",
+  secondary: "#FFFFFF1A",
+  chatUser: "#343434",
+  muted: "#090909",
+  accent: "#FFFFFF1C",
+  border: "#FFFFFF1A",
+  input: "#FFFFFF40",
+  sidebar: "#050505",
+  sidebarBorder: "#FFFFFF14",
+  sidebarAccent: "#151515",
+} as const;
 
 let memoryPreference: AppearancePreference | null = null;
 let writeGeneration = 0;
@@ -26,7 +48,7 @@ export function getCachedAppearancePreference(): AppearancePreference {
 export async function loadAppearancePreference(): Promise<AppearancePreference> {
   try {
     const stored = await SecureStore.getItemAsync(UI_APPEARANCE_STORAGE_KEY);
-    memoryPreference = normalizeAppearancePreference(stored);
+    memoryPreference = stored === "amoled" ? "amoled" : normalizeAppearancePreference(stored);
   } catch {
     memoryPreference = memoryPreference ?? "system";
   }
@@ -50,14 +72,18 @@ export function resolveMobileAppearance(
   preference: AppearancePreference = getCachedAppearancePreference(),
   scheme?: ColorSchemeName | null,
 ): ResolvedAppearance {
-  return resolveAppearance(preference, systemAppearance(scheme));
+  return resolveAppearance(
+    preference === "amoled" ? "dark" : preference,
+    systemAppearance(scheme),
+  );
 }
 
 export function mobileTokens(
   preference: AppearancePreference = getCachedAppearancePreference(),
   scheme?: ColorSchemeName | null,
 ) {
-  return tokensForAppearance(resolveMobileAppearance(preference, scheme));
+  const tokens = tokensForAppearance(resolveMobileAppearance(preference, scheme));
+  return preference === "amoled" ? { ...tokens, ...AMOLED_OVERRIDES } : tokens;
 }
 
 export function subscribeAppearance(listener: () => void): () => void {
@@ -90,7 +116,9 @@ async function persistAppearancePreference(
 // Native surfaces (alerts, action sheets, the keyboard, iOS platform colors) follow the
 // window's scheme, so an explicit app choice overrides it and System hands it back to the OS.
 function applyNativeColorScheme(preference: AppearancePreference) {
-  Appearance.setColorScheme(preference === "system" ? "unspecified" : preference);
+  Appearance.setColorScheme(
+    preference === "system" ? "unspecified" : preference === "amoled" ? "dark" : preference,
+  );
 }
 
 Appearance.addChangeListener(() => {

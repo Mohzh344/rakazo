@@ -4,6 +4,7 @@ import { matchUiLocale } from "@rakazo/core";
 /** The app languages mobile ships catalogs for. */
 const SHIPPED_LOCALES = [
   "en",
+  "ar",
   "zh-CN",
   "zh-TW",
   "ru",

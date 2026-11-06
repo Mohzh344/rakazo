@@ -107,6 +107,27 @@ through the over-the-air updates below without a new APK. A Google Play install
 is signed with Play's key, so switching from the APK to Play means uninstalling
 the APK first.
 
+## Fork Android ARM64 APK
+
+This fork has a manual `Fork Android ARM64 APK` GitHub Actions workflow. Run it on
+the fork's build branch to create a signed `arm64-v8a` APK artifact; it does not
+create or publish a public GitHub Release. The workflow checks the APK and fails
+if it contains another ABI.
+
+Configure an `EXPO_TOKEN` Actions secret and `EXPO_OWNER` and `EXPO_PROJECT_ID`
+Actions variables. Set matching `EXPO_OWNER` and `EXPO_PROJECT_ID` variables in
+the EAS production environment too, so remote config resolves to the same app.
+Link `apps/mobile` to a separate Expo project owned by the fork's release
+operator; do not use Rakazo upstream's project ID. Before running the workflow,
+create a new Android keystore for this project in EAS credentials using Expo's
+[managed-credentials guide](https://docs.expo.dev/app-signing/managed-credentials/);
+do not import or reuse the upstream keystore. The workflow uses EAS remote credentials with
+`--freeze-credentials`, so a missing key stops the CI build instead of changing
+signing credentials. EAS stores the private key outside Git. Set
+`EXPO_PUBLIC_API_URL` in the EAS production environment (HTTPS required).
+Add `GOOGLE_SERVICES_JSON` there to configure Android push; without it, the APK
+can still build but push notifications are unavailable.
+
 ## Android push
 
 For Android push notifications, create a Firebase project and register the app's

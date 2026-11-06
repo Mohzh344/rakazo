@@ -93,7 +93,7 @@ function expectSelected(label: string) {
   expect(row(label).querySelector('[data-symbol="checkmark"]')).not.toBeNull();
 }
 
-it.each(["ru", "de", "zh-TW"] as const)(
+it.each(["ru", "de", "zh-TW", "ar"] as const)(
   "saves and selects %s when its language row is pressed",
   async (locale) => {
     let finishSave!: () => void;

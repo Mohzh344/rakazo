@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "يستخدم Rakazo الكاميرا لتتمكن من إرفاق صور برسالة إلى وكيل.",
+    "NSPhotoLibraryUsageDescription": "يستخدم Rakazo مكتبة الصور لتتمكن من إرفاق صور برسالة إلى وكيل.",
+    "NSLocalNetworkUsageDescription": "يتصل Rakazo بخادم Rakazo مستضاف ذاتياً على شبكتك المحلية.",
+    "NSMicrophoneUsageDescription": "يستخدم Rakazo الميكروفون لإجراء مكالمات صوتية مع وكلائك.",
+    "NSSpeechRecognitionUsageDescription": "يحوّل Rakazo كلامك إلى رسائل أثناء المكالمات الصوتية.",
+    "NSFaceIDUsageDescription": "اسمح لـ Rakazo بالوصول إلى بيانات Face ID الحيوية."
+  }
+}

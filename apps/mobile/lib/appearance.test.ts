@@ -50,6 +50,28 @@ describe("mobile appearance", () => {
     await setAppearancePreference("system");
   });
 
+  it("loads AMOLED as pure black and always keeps native surfaces dark", async () => {
+    const { UI_APPEARANCE_STORAGE_KEY } = await import("@rakazo/ui-tokens");
+    const {
+      getCachedAppearancePreference,
+      loadAppearancePreference,
+      mobileTokens,
+      resolveMobileAppearance,
+      setAppearancePreference,
+    } = await import("./appearance");
+
+    await setAppearancePreference("amoled");
+    expect(colorSchemeOverride).toBe("dark");
+    expect(resolveMobileAppearance("amoled", "light")).toBe("dark");
+    expect(mobileTokens("amoled", "light").background).toBe("#000000");
+    expect(mobileTokens("amoled", "light").border).toBe("#FFFFFF1A");
+    expect(store.get(UI_APPEARANCE_STORAGE_KEY)).toBe("amoled");
+
+    await loadAppearancePreference();
+    expect(getCachedAppearancePreference()).toBe("amoled");
+    expect(mobileTokens().background).toBe("#000000");
+  });
+
   it("overrides the native scheme for an explicit choice and hands it back for System", async () => {
     const { UI_APPEARANCE_STORAGE_KEY } = await import("@rakazo/ui-tokens");
     const { loadAppearancePreference, resolveMobileAppearance, setAppearancePreference } =

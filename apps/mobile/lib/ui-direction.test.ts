@@ -40,7 +40,7 @@ describe("mobile ui direction", () => {
     (I18nManager as { isRTL: boolean }).isRTL = false;
     const { applyMobileUiDirection } = await import("./ui-direction");
 
-    expect(applyMobileUiDirection("he-IL")).toBe(true);
+    expect(applyMobileUiDirection("ar-MA")).toBe(true);
     expect(I18nManager.allowRTL).toHaveBeenCalledWith(true);
     expect(I18nManager.forceRTL).toHaveBeenCalledWith(true);
     await Promise.resolve();

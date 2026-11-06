@@ -1,6 +1,7 @@
 /** Speech recognizers need regional BCP-47 tags for the app's UI locale codes. */
 const SPEECH_LOCALE_TAGS = {
   en: "en-US",
+  ar: "ar-001",
   de: "de-DE",
   es: "es-ES",
   fr: "fr-FR",
@@ -31,6 +32,7 @@ export function speechLocaleTag(locale: SpeechLocale): string {
 
 /**
  * English UI follows the browser or device language, regardless of shipped catalogs.
+ * Arabic uses its standard language-wide tag instead of a country-specific dialect.
  * Other UI languages use the speaker's region when the language matches; Chinese
  * keeps the app's tag to preserve its script. Known languages without a region use
  * the shared default for that language.
@@ -40,6 +42,7 @@ export function recognitionLocaleTag(
   speaker: string | null | undefined,
 ): string {
   const appTag = speechLocaleTag(locale);
+  if (locale === "ar") return appTag;
   const normalized = speakerTag(speaker);
   const spoken = normalized === "es-419" ? LATIN_AMERICAN_SPANISH : normalized;
   if (!spoken || locale.startsWith("zh")) return appTag;

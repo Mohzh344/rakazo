@@ -3,6 +3,7 @@ import type { AppLocaleSchema } from "@rakazo/contracts";
 /** Each app language named in itself, for language pickers. */
 export const APP_LOCALE_LABELS: Record<(typeof AppLocaleSchema.options)[number], string> = {
   en: "English",
+  ar: "العربية",
   de: "Deutsch",
   ko: "한국어",
   tr: "Türkçe",
