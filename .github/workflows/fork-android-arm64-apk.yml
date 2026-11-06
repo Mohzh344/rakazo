@@ -1,0 +1,178 @@
+name: Fork Android ARM64 APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-android-arm64-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build signed arm64 APK with Gradle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Require the independent release key
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          ANDROID_RELEASE_CERT_SHA256: ${{ vars.ANDROID_RELEASE_CERT_SHA256 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in \
+            ANDROID_RELEASE_KEYSTORE_BASE64 \
+            ANDROID_RELEASE_KEYSTORE_PASSWORD \
+            ANDROID_RELEASE_KEY_ALIAS \
+            ANDROID_RELEASE_KEY_PASSWORD \
+            ANDROID_RELEASE_CERT_SHA256; do
+            if [[ -z "${!name}" ]]; then
+              echo "Configure the repository secret/variable: $name" >&2
+              exit 1
+            fi
+          done
+
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [[ -z "$sdk_root" || ! -d "$sdk_root" ]]; then
+            echo "The GitHub runner does not expose a preinstalled Android SDK." >&2
+            exit 1
+          fi
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk_root" >> "$GITHUB_ENV"
+          sdkmanager_bin="$(command -v sdkmanager || true)"
+          if [[ -z "$sdkmanager_bin" ]]; then
+            sdkmanager_bin="$(find "$sdk_root/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          if [[ -z "$sdkmanager_bin" ]]; then
+            echo "Android sdkmanager was not found on the runner." >&2
+            exit 1
+          fi
+          yes | "$sdkmanager_bin" --licenses >/dev/null 2>&1 || true
+          "$sdkmanager_bin" --install \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check mobile app and tests
+        run: |
+          pnpm --filter @rakazo/mobile check
+          pnpm --filter @rakazo/mobile test
+
+      - name: Prepare the private signing keystore
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          key_store="$RUNNER_TEMP/rakazo-release.p12"
+          printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$key_store"
+          chmod 600 "$key_store"
+          test -s "$key_store"
+          echo "RAKAZO_ANDROID_KEYSTORE_PATH=$key_store" >> "$GITHUB_ENV"
+
+      - name: Verify fork configuration has no Expo project or upstream OTA URL
+        working-directory: apps/mobile
+        env:
+          RAKAZO_FORK_RELEASE: "1"
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json > "$RUNNER_TEMP/rakazo-expo-config.json"
+          node - "$RUNNER_TEMP/rakazo-expo-config.json" <<'NODE'
+          const fs = require("node:fs");
+          const config = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (config.owner || config.extra?.eas?.projectId) {
+            throw new Error("Fork APK must not contain Expo/EAS ownership or project identity.");
+          }
+          if (config.updates?.enabled !== false || config.updates?.url) {
+            throw new Error("Fork APK must disable Expo Updates and remove every OTA URL.");
+          }
+          if (JSON.stringify(config).includes("07f7eb04-45e3-47fe-9374-99a2f991131e")) {
+            throw new Error("Upstream Expo project identity remains in the resolved config.");
+          }
+          console.log("Verified: no Expo project identity or OTA endpoint is configured.");
+          NODE
+
+      - name: Generate native Android project
+        working-directory: apps/mobile
+        env:
+          RAKAZO_FORK_RELEASE: "1"
+        run: pnpm exec expo prebuild --platform android --no-install --clean
+
+      - name: Build and verify signed arm64 APK
+        id: build
+        working-directory: apps/mobile/android
+        env:
+          RAKAZO_FORK_RELEASE: "1"
+          RAKAZO_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          RAKAZO_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          RAKAZO_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          ANDROID_RELEASE_CERT_SHA256: ${{ vars.ANDROID_RELEASE_CERT_SHA256 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+          apk="app/build/outputs/apk/release/app-release.apk"
+          if [[ ! -s "$apk" ]]; then
+            echo "Gradle did not produce the expected release APK." >&2
+            exit 1
+          fi
+          abis="$(unzip -Z1 "$apk" | awk -F/ '$1 == "lib" && NF >= 3 { print $2 }' | sort -u | paste -sd ' ' -)"
+          if [[ "$abis" != "arm64-v8a" ]]; then
+            echo "Expected only arm64-v8a native libraries; found: ${abis:-none}." >&2
+            exit 1
+          fi
+          build_tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n1)"
+          apksigner="$ANDROID_HOME/build-tools/$build_tools/apksigner"
+          "$apksigner" verify --verbose "$apk"
+          cert_output="$("$apksigner" verify --print-certs "$apk")"
+          actual_cert="$(sed -n 's/.*certificate SHA-256 digest: //p' <<< "$cert_output" | head -n1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          expected_cert="$(printf '%s' "$ANDROID_RELEASE_CERT_SHA256" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          if [[ -z "$actual_cert" || "$actual_cert" != "$expected_cert" ]]; then
+            echo "APK signature does not match the fork's dedicated release certificate." >&2
+            exit 1
+          fi
+          cp "$apk" "$RUNNER_TEMP/rakazo-android-arm64.apk"
+          echo "apk=$RUNNER_TEMP/rakazo-android-arm64.apk" >> "$GITHUB_OUTPUT"
+          version="$(node -p "require('../app.json').expo.version")"
+          version_code="$(node -p "require('../app.json').expo.android.versionCode")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version_code=$version_code" >> "$GITHUB_OUTPUT"
+
+      - name: Upload installable APK artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rakazo-android-arm64-v${{ steps.build.outputs.version }}-${{ steps.build.outputs.version_code }}
+          path: ${{ steps.build.outputs.apk }}
+          if-no-files-found: error
+          retention-days: 30
